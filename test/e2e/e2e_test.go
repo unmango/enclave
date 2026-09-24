@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -31,6 +32,9 @@ const serviceAccountName = "enclave-controller-manager"
 
 // metricsServiceName is the name of the metrics service of the project
 const metricsServiceName = "enclave-controller-manager-metrics-service"
+
+// samplesNamespace is where the config/samples resources are applied
+const samplesNamespace = "enclave-samples"
 
 // metricsRoleBindingName is the name of the RBAC that will be created to allow get the metrics data
 const metricsRoleBindingName = "enclave-metrics-binding"
@@ -260,15 +264,54 @@ var _ = Describe("Manager", Ordered, func() {
 
 		// +kubebuilder:scaffold:e2e-webhooks-checks
 
-		// TODO: Customize the e2e test suite with scenarios specific to your project.
-		// Consider applying sample/CR(s) and check their status and/or verifying
-		// the reconciliation by using the metrics, i.e.:
-		// metricsOutput, err := getMetricsOutput()
-		// Expect(err).NotTo(HaveOccurred(), "Failed to retrieve logs from curl pod")
-		// Expect(metricsOutput).To(ContainSubstring(
-		//    fmt.Sprintf(`controller_runtime_reconcile_total{controller="%s",result="success"} 1`,
-		//    strings.ToLower(<Kind>),
-		// ))
+		It("binds a warm Enclave to a claim and backfills the pool", func() {
+			kubectl := func(args ...string) string {
+				out, err := utils.Run(exec.Command("kubectl", append(args, "-n", samplesNamespace)...))
+				ExpectWithOffset(1, err).NotTo(HaveOccurred())
+				return strings.TrimSpace(out)
+			}
+			poolStatus := func(field string) string {
+				return kubectl("get", "enclavepool", "enclavepool-sample", "-o", "jsonpath={.status."+field+"}")
+			}
+
+			By("creating a pool of two warm Enclaves")
+			_, err := utils.Run(exec.Command("kubectl", "create", "ns", samplesNamespace))
+			Expect(err).NotTo(HaveOccurred())
+			DeferCleanup(func() {
+				_, _ = utils.Run(exec.Command("kubectl", "delete", "ns", samplesNamespace, "--wait=false"))
+			})
+			kubectl("apply", "-f", "config/samples/enclave_v1alpha1_enclavepool.yaml")
+			Eventually(func(g Gomega) {
+				g.Expect(poolStatus("availableReplicas")).To(Equal("2"))
+			}).Should(Succeed())
+			warm := strings.Fields(kubectl("get", "enclaves", "-o", "jsonpath={.items[*].metadata.name}"))
+			Expect(warm).To(HaveLen(2))
+
+			By("claiming an Enclave")
+			kubectl("apply", "-f", "config/samples/enclave_v1alpha1_enclaveclaim.yaml")
+			var bound string
+			Eventually(func(g Gomega) {
+				g.Expect(kubectl("get", "enclaveclaim", "enclaveclaim-sample",
+					"-o", "jsonpath={.status.phase}")).To(Equal("Bound"))
+				bound = kubectl("get", "enclaveclaim", "enclaveclaim-sample", "-o", "jsonpath={.status.enclaveName}")
+			}, 10*time.Second).Should(Succeed())
+			Expect(warm).To(ContainElement(bound), "the claim should bind a warm Enclave")
+			Expect(kubectl("get", "pod", bound, "-o", "jsonpath={.status.phase}")).To(Equal("Running"))
+
+			By("backfilling the pool")
+			Eventually(func(g Gomega) {
+				g.Expect(poolStatus("availableReplicas")).To(Equal("2"))
+				g.Expect(poolStatus("boundReplicas")).To(Equal("1"))
+			}).Should(Succeed())
+
+			By("deleting the Enclave with its claim")
+			kubectl("delete", "enclaveclaim", "enclaveclaim-sample")
+			Eventually(func(g Gomega) {
+				_, err := utils.Run(exec.Command("kubectl", "get", "pod", bound, "-n", samplesNamespace))
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(poolStatus("boundReplicas")).To(Equal("0"))
+			}).Should(Succeed())
+		})
 	})
 })
 
