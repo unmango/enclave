@@ -49,6 +49,7 @@
         let
           version = "0.0.1";
           k8sVersion = "1.37";
+
           k8s = inputs'.kubepkgs.legacyPackages.kubernetes.${k8sVersion};
           envtest-assets = pkgs.callPackage ./nix/envtest.nix { inherit k8s; };
           operator = pkgs.callPackage ./nix { inherit envtest-assets version; };
@@ -56,7 +57,9 @@
         {
           _module.args.pkgs = import inputs.nixpkgs {
             inherit system;
-            overlays = [ inputs.gomod2nix.overlays.default ];
+            overlays = with inputs; [
+              gomod2nix.overlays.default
+            ];
           };
 
           packages = {
@@ -92,9 +95,6 @@
                 k8s.sigs.kustomize
               ];
 
-            # Tool variables in a kubebuilder-generated Makefile use `?=`, which
-            # yields to the environment, so these point it at the binaries from
-            # this shell instead of ones it would `go install` into ./bin.
             KUBEBUILDER_ASSETS = "${envtest-assets}";
             CONTROLLER_GEN = lib.getExe' pkgs.kubernetes-controller-tools "controller-gen";
             ENVTEST = lib.getExe pkgs.setup-envtest;
@@ -109,6 +109,7 @@
             gofmt.enable = true;
             nixfmt.enable = true;
             shfmt.enable = true;
+            zizmor.enable = true;
           };
         };
     };
