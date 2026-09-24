@@ -5,7 +5,7 @@
   version,
 }:
 buildGoApplication {
-  pname = "";
+  pname = "enclave-operator";
   inherit version;
 
   src = lib.cleanSource ../.;
