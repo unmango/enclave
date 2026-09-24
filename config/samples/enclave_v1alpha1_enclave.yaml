@@ -1,0 +1,14 @@
+apiVersion: enclave.unmango.dev/v1alpha1
+kind: Enclave
+metadata:
+  labels:
+    app.kubernetes.io/name: enclave
+    app.kubernetes.io/managed-by: kustomize
+  name: enclave-sample
+spec:
+  template:
+    spec:
+      containers:
+        - name: dev
+          image: busybox
+          command: ["sleep", "infinity"]

@@ -1,11 +1,38 @@
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  labels:
-    app.kubernetes.io/name: enclave
-    app.kubernetes.io/managed-by: kustomize
   name: manager-role
 rules:
-- apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["get", "list", "watch"]
+- apiGroups:
+  - enclave.unmango.dev
+  resources:
+  - enclaveclaims
+  - enclavepools
+  - enclaves
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - enclave.unmango.dev
+  resources:
+  - enclaveclaims/finalizers
+  - enclavepools/finalizers
+  - enclaves/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - enclave.unmango.dev
+  resources:
+  - enclaveclaims/status
+  - enclavepools/status
+  - enclaves/status
+  verbs:
+  - get
+  - patch
+  - update

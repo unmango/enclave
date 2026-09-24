@@ -1,0 +1,10 @@
+apiVersion: enclave.unmango.dev/v1alpha1
+kind: EnclaveClaim
+metadata:
+  labels:
+    app.kubernetes.io/name: enclave
+    app.kubernetes.io/managed-by: kustomize
+  name: enclaveclaim-sample
+spec:
+  poolRef:
+    name: enclavepool-sample

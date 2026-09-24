@@ -18,3 +18,17 @@ resources:
 - metrics_auth_role.yaml
 - metrics_auth_role_binding.yaml
 - metrics_reader_role.yaml
+# For each CRD, "Admin", "Editor" and "Viewer" roles are scaffolded by
+# default, aiding admins in cluster management. Those roles are
+# not used by the enclave itself. You can comment the following lines
+# if you do not want those helpers be installed with your Project.
+- enclaveclaim_admin_role.yaml
+- enclaveclaim_editor_role.yaml
+- enclaveclaim_viewer_role.yaml
+- enclavepool_admin_role.yaml
+- enclavepool_editor_role.yaml
+- enclavepool_viewer_role.yaml
+- enclave_admin_role.yaml
+- enclave_editor_role.yaml
+- enclave_viewer_role.yaml
+
