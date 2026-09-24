@@ -1,0 +1,13 @@
+resources:
+- monitor.yaml
+
+# [PROMETHEUS-WITH-CERTS] The following patch configures the ServiceMonitor in ../prometheus
+# to securely reference certificates created and managed by cert-manager.
+# Additionally, ensure that you uncomment the [METRICS WITH CERTMANAGER] patch under config/default/kustomization.yaml
+# to mount the "metrics-server-cert" secret in the Manager Deployment.
+# Also uncomment the [CERTMANAGER] replacements there that target the ServiceMonitor;
+# without them serverName stays SERVICE_NAME.SERVICE_NAMESPACE.svc and TLS verification fails.
+#patches:
+#  - path: monitor_tls_patch.yaml
+#    target:
+#      kind: ServiceMonitor
