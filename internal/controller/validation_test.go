@@ -77,6 +77,16 @@ var _ = Describe("API validation", func() {
 		Expect(k8sClient.Update(ctx, claim)).To(MatchError(ContainSubstring("poolRef is immutable")))
 	})
 
+	It("keeps labels on a pool's embedded templates", func() {
+		pool := testPool(uniqueName("pool"), 0)
+		pool.Spec.Template.Labels = map[string]string{"enclave": "label"}
+		pool.Spec.Template.Spec.Template.Labels = map[string]string{"pod": "label"}
+		Expect(k8sClient.Create(ctx, pool)).To(Succeed())
+
+		Expect(pool.Spec.Template.Labels).To(HaveKeyWithValue("enclave", "label"))
+		Expect(pool.Spec.Template.Spec.Template.Labels).To(HaveKeyWithValue("pod", "label"))
+	})
+
 	It("defaults a pool's replicas and workspace mount path", func() {
 		pool := testPool(uniqueName("pool"), 0)
 		pool.Spec.Replicas = nil
