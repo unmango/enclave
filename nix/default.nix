@@ -1,12 +1,13 @@
 {
   buildGoApplication,
   envtest-assets,
+  go,
   lib,
   version,
 }:
 buildGoApplication {
   pname = "enclave-operator";
-  inherit version;
+  inherit go version;
 
   src = lib.cleanSource ../.;
   modules = ./gomod2nix.toml;

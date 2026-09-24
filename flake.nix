@@ -52,7 +52,10 @@
 
           k8s = inputs'.kubepkgs.legacyPackages.kubernetes.${k8sVersion};
           envtest-assets = pkgs.callPackage ./nix/envtest.nix { inherit k8s; };
-          operator = pkgs.callPackage ./nix { inherit envtest-assets version; };
+          operator = pkgs.callPackage ./nix {
+            inherit envtest-assets version;
+            go = pkgs.go_1_27;
+          };
         in
         {
           _module.args.pkgs = import inputs.nixpkgs {
@@ -77,7 +80,7 @@
               (with pkgs; [
                 ginkgo
                 gnumake
-                go
+                go_1_27
                 golangci-lint
                 gomod2nix
                 gopls
