@@ -83,9 +83,14 @@ setup-test-e2e: | bin ## Create the Kind cluster used for e2e tests if it does n
 	$(KIND) export kubeconfig --name $(KIND_CLUSTER) --kubeconfig $(E2E_KUBECONFIG)
 
 .PHONY: test-e2e
-# The cleanup runs from a trap so a failing suite still tears the cluster down.
-test-e2e: setup-test-e2e manifests generate vet ## Run the e2e tests against a Kind cluster.
-	trap '$(cleanup-e2e-cluster)' EXIT; \
+# The trap is set before any prerequisite runs, so a failing codegen step or
+# suite still tears down a cluster this run created. A cluster that already
+# existed is left in place.
+test-e2e: ## Run the e2e tests against a Kind cluster.
+	if ! $(KIND) get clusters | grep -qxF '$(KIND_CLUSTER)'; then \
+		trap '$(cleanup-e2e-cluster)' EXIT; \
+	fi; \
+	$(MAKE) setup-test-e2e manifests generate vet; \
 	KUBECONFIG=$(E2E_KUBECONFIG) KIND=$(KIND) KIND_CLUSTER=$(KIND_CLUSTER) $(GO) test -tags=e2e ./test/e2e/ -v -ginkgo.v
 
 .PHONY: cleanup-test-e2e
