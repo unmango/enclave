@@ -62,7 +62,7 @@ lint-config: ## Verify golangci-lint linter configuration.
 
 ##@ E2E
 
-KIND_CLUSTER ?= my-operator-e2e
+KIND_CLUSTER ?= enclave-e2e
 
 # The e2e suite installs CRDs and a Deployment into whatever cluster the ambient
 # kubeconfig points at. Write the Kind credentials to a file of their own and
@@ -111,8 +111,8 @@ dist build-installer: manifests generate ## Generate a consolidated YAML with CR
 
 ##@ Chart
 
-HELM_RELEASE   ?= my-operator
-HELM_NAMESPACE ?= my-operator-system
+HELM_RELEASE   ?= enclave
+HELM_NAMESPACE ?= enclave-system
 CHART          ?= dist/chart
 
 .PHONY: helm-lint
@@ -152,7 +152,7 @@ kind-load: hack/stream-image ## Load the image into the kind cluster.
 # nix/image.nix always tags the archive `latest`; the tag that matters is the
 # destination one, which skopeo sets on the way out. That keeps the local name
 # config/manager and `make kind-load` expect free of the release version.
-PUSH_IMAGE ?= ghcr.io/example/my-operator
+PUSH_IMAGE ?= ghcr.io/unmango/enclave
 IMAGE_TAG  ?= latest
 
 .PHONY: push-image

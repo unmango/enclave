@@ -4,7 +4,7 @@
   operator,
 }:
 dockerTools.streamLayeredImage {
-  name = "my-operator";
+  name = "enclave";
   tag = "latest";
 
   contents = [

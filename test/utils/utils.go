@@ -1,17 +1,7 @@
 /*
-Copyright 2026 example.
+Copyright 2026 UnMango.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+Licensed under the MIT License. See LICENSE in the project root for details.
 */
 
 package utils
@@ -30,9 +20,6 @@ import (
 const (
 	certmanagerVersion = "v1.20.2"
 	certmanagerURLTmpl = "https://github.com/cert-manager/cert-manager/releases/download/%s/cert-manager.yaml"
-
-	defaultKindBinary  = "kind"
-	defaultKindCluster = "kind"
 )
 
 func warnError(err error) {
@@ -131,22 +118,6 @@ func IsCertManagerCRDsInstalled() bool {
 	}
 
 	return false
-}
-
-// LoadImageToKindClusterWithName loads a local docker image to the kind cluster
-func LoadImageToKindClusterWithName(name string) error {
-	cluster := defaultKindCluster
-	if v, ok := os.LookupEnv("KIND_CLUSTER"); ok {
-		cluster = v
-	}
-	kindOptions := []string{"load", "docker-image", name, "--name", cluster}
-	kindBinary := defaultKindBinary
-	if v, ok := os.LookupEnv("KIND"); ok {
-		kindBinary = v
-	}
-	cmd := exec.Command(kindBinary, kindOptions...)
-	_, err := Run(cmd)
-	return err
 }
 
 // GetNonEmptyLines converts given command output string into individual objects
