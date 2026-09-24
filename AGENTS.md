@@ -157,9 +157,8 @@ Tests use **Ginkgo + Gomega** (BDD style). Check `suite_test.go` for setup.
 make manifests generate
 
 # 2. Build & deploy
-export IMG=<registry>/<project>:tag
-make docker-build docker-push IMG=$IMG  # Or: kind load docker-image $IMG --name <cluster>
-make deploy IMG=$IMG
+make kind-load KIND_CLUSTER=<cluster>  # Loads enclave:latest, the image config/manager references
+make deploy
 
 # 3. Test
 kubectl apply -k config/samples/
@@ -254,7 +253,7 @@ Generated code includes: status conditions (`metav1.Condition`), finalizers, own
 
 ```bash
 # Generate dist/install.yaml from Kustomize manifests
-make build-installer IMG=<registry>/<project>:tag
+make dist  # Alias: build-installer
 ```
 
 **Key points:**
@@ -276,12 +275,8 @@ kubebuilder edit --plugins=helm/v2-alpha --output-dir=charts  # Generates charts
 
 **For development:**
 ```bash
-make helm-deploy IMG=<registry>/<project>:<tag>          # Deploy manager via Helm
-make helm-deploy IMG=$IMG HELM_EXTRA_ARGS="--set ..."    # Deploy with custom values
-make helm-status                                         # Show release status
-make helm-uninstall                                      # Remove release
-make helm-history                                        # View release history
-make helm-rollback                                       # Rollback to previous version
+make helm-lint     # Lint the chart and render it with default values
+make helm-deploy   # Install or upgrade the release from dist/chart
 ```
 
 **For end users/production:**
@@ -297,8 +292,7 @@ helm install my-release ./<output-dir>/chart/ --namespace <ns> --create-namespac
 ### Publish Container Image
 
 ```bash
-export IMG=<registry>/<project>:<version>
-make docker-build docker-push IMG=$IMG
+make push-image PUSH_IMAGE=<registry>/<project> IMAGE_TAG=<version>
 ```
 
 ## References
