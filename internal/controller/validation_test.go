@@ -7,6 +7,8 @@ Licensed under the MIT License. See LICENSE in the project root for details.
 package controller
 
 import (
+	"strings"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -83,6 +85,13 @@ var _ = Describe("API validation", func() {
 		pool := testPool(uniqueName("volume"), 1)
 		pool.Spec.Template.Spec.Template.Spec.Volumes = enclave.Spec.Template.Spec.Volumes
 		Expect(k8sClient.Create(ctx, pool)).To(MatchError(ContainSubstring("volume names starting with enclave- are reserved")))
+	})
+
+	It("limits Enclave names to the length of a label value", func() {
+		// The name is copied into the enclave label on the Pod and its objects.
+		Expect(k8sClient.Create(ctx, testEnclave(strings.Repeat("a", 63)))).To(Succeed())
+		Expect(k8sClient.Create(ctx, testEnclave(strings.Repeat("a", 64)))).
+			To(MatchError(ContainSubstring("name must be no more than 63 characters")))
 	})
 
 	It("rejects changing an Enclave's claimRef", func() {
