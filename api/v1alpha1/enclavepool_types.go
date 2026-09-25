@@ -78,6 +78,7 @@ type EnclavePoolStatus struct {
 // +kubebuilder:printcolumn:name="Available",type=integer,JSONPath=".status.availableReplicas"
 // +kubebuilder:printcolumn:name="Bound",type=integer,JSONPath=".status.boundReplicas"
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:validation:XValidation:rule="size(self.metadata.name) <= 57",message="name must be no more than 57 characters, so the names of its Enclaves fit in a label value"
 
 // EnclavePool keeps warm Enclaves ready so that claiming one costs a scheduling decision rather than a cold start.
 type EnclavePool struct {
