@@ -57,6 +57,16 @@ A workload that needs claim-specific input waits for `/var/run/enclave/claim/ENC
 Keys must be unique across a claim's Secrets.
 On a duplicate, the first Secret listed wins, and the `SecretsProjected` condition names the conflict.
 
+## Reserved names
+
+An Enclave named `x` owns a Pod `x`, a Secret `x-claim`, a PersistentVolumeClaim `x-workspace` when its workspace has storage, and a ServiceAccount `x` with RoleBindings `x-<hash>` when `spec.serviceAccount` is set.
+If an object the Enclave does not control already holds one of those names, the Enclave reports `Ready=False` with reason `Conflict` and does not adopt it.
+The claim controller likewise projects nothing into a claim Secret the Enclave does not control.
+
+The operator adds volumes named `enclave-*` to the template, and mounts at the workspace path and `/var/run/enclave/claim` in every container.
+A template volume name with the `enclave-` prefix is rejected on admission.
+A container that mounts anything at either path is reported as a `Conflict`, because a CEL rule over every container's mounts exceeds the CRD cost budget.
+
 ## Template changes
 
 A pool hashes its template and labels each Enclave with the hash.
