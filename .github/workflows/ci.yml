@@ -40,6 +40,7 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@84c0677f58dcedf3b91f8223ce36a9ea5b3c84b7 # v15
 
       - run: nix develop -c make lint-config lint helm-lint
+      - run: nix develop -c kustomize build config/release > /dev/null
 
       # dist/chart is generated from config/ by the kubebuilder helm plugin and
       # committed. If this fails, run `make helm` and commit the result.
