@@ -124,6 +124,7 @@ type Repository struct {
 // ServiceAccountSpec configures the ServiceAccount created for an Enclave.
 type ServiceAccountSpec struct {
 	// roleRefs are bound to the ServiceAccount with one RoleBinding each, in the Enclave's namespace.
+	// +kubebuilder:validation:MaxItems=16
 	// +optional
 	RoleRefs []rbacv1.RoleRef `json:"roleRefs,omitempty"`
 }

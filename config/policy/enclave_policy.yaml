@@ -28,12 +28,105 @@ spec:
   - expression: authorizer.group('').resource('pods').namespace(object.metadata.namespace).check('create').allowed()
     message: creating an Enclave requires permission to create Pods in its namespace
     reason: Forbidden
+  # One expression per roleRef: an authorizer check costs 350k and an
+  # expression may spend 1M, so a single all() fails past two roleRefs.
+  # roleRefs is capped at 16 items to match.
   # messageExpression cannot call the authorizer, so the message cannot name
   # the role that failed.
   - expression: >-
-      variables.roleRefs.all(r, authorizer.group('rbac.authorization.k8s.io')
-      .resource(r.kind == 'Role' ? 'roles' : 'clusterroles')
-      .namespace(object.metadata.namespace).name(r.name).check('bind').allowed())
+      size(variables.roleRefs) <= 0 || authorizer.group('rbac.authorization.k8s.io')
+      .resource(variables.roleRefs[0].kind == 'Role' ? 'roles' : 'clusterroles')
+      .namespace(object.metadata.namespace).name(variables.roleRefs[0].name).check('bind').allowed()
+    message: roleRefs may only name roles you have permission to bind
+    reason: Forbidden
+  - expression: >-
+      size(variables.roleRefs) <= 1 || authorizer.group('rbac.authorization.k8s.io')
+      .resource(variables.roleRefs[1].kind == 'Role' ? 'roles' : 'clusterroles')
+      .namespace(object.metadata.namespace).name(variables.roleRefs[1].name).check('bind').allowed()
+    message: roleRefs may only name roles you have permission to bind
+    reason: Forbidden
+  - expression: >-
+      size(variables.roleRefs) <= 2 || authorizer.group('rbac.authorization.k8s.io')
+      .resource(variables.roleRefs[2].kind == 'Role' ? 'roles' : 'clusterroles')
+      .namespace(object.metadata.namespace).name(variables.roleRefs[2].name).check('bind').allowed()
+    message: roleRefs may only name roles you have permission to bind
+    reason: Forbidden
+  - expression: >-
+      size(variables.roleRefs) <= 3 || authorizer.group('rbac.authorization.k8s.io')
+      .resource(variables.roleRefs[3].kind == 'Role' ? 'roles' : 'clusterroles')
+      .namespace(object.metadata.namespace).name(variables.roleRefs[3].name).check('bind').allowed()
+    message: roleRefs may only name roles you have permission to bind
+    reason: Forbidden
+  - expression: >-
+      size(variables.roleRefs) <= 4 || authorizer.group('rbac.authorization.k8s.io')
+      .resource(variables.roleRefs[4].kind == 'Role' ? 'roles' : 'clusterroles')
+      .namespace(object.metadata.namespace).name(variables.roleRefs[4].name).check('bind').allowed()
+    message: roleRefs may only name roles you have permission to bind
+    reason: Forbidden
+  - expression: >-
+      size(variables.roleRefs) <= 5 || authorizer.group('rbac.authorization.k8s.io')
+      .resource(variables.roleRefs[5].kind == 'Role' ? 'roles' : 'clusterroles')
+      .namespace(object.metadata.namespace).name(variables.roleRefs[5].name).check('bind').allowed()
+    message: roleRefs may only name roles you have permission to bind
+    reason: Forbidden
+  - expression: >-
+      size(variables.roleRefs) <= 6 || authorizer.group('rbac.authorization.k8s.io')
+      .resource(variables.roleRefs[6].kind == 'Role' ? 'roles' : 'clusterroles')
+      .namespace(object.metadata.namespace).name(variables.roleRefs[6].name).check('bind').allowed()
+    message: roleRefs may only name roles you have permission to bind
+    reason: Forbidden
+  - expression: >-
+      size(variables.roleRefs) <= 7 || authorizer.group('rbac.authorization.k8s.io')
+      .resource(variables.roleRefs[7].kind == 'Role' ? 'roles' : 'clusterroles')
+      .namespace(object.metadata.namespace).name(variables.roleRefs[7].name).check('bind').allowed()
+    message: roleRefs may only name roles you have permission to bind
+    reason: Forbidden
+  - expression: >-
+      size(variables.roleRefs) <= 8 || authorizer.group('rbac.authorization.k8s.io')
+      .resource(variables.roleRefs[8].kind == 'Role' ? 'roles' : 'clusterroles')
+      .namespace(object.metadata.namespace).name(variables.roleRefs[8].name).check('bind').allowed()
+    message: roleRefs may only name roles you have permission to bind
+    reason: Forbidden
+  - expression: >-
+      size(variables.roleRefs) <= 9 || authorizer.group('rbac.authorization.k8s.io')
+      .resource(variables.roleRefs[9].kind == 'Role' ? 'roles' : 'clusterroles')
+      .namespace(object.metadata.namespace).name(variables.roleRefs[9].name).check('bind').allowed()
+    message: roleRefs may only name roles you have permission to bind
+    reason: Forbidden
+  - expression: >-
+      size(variables.roleRefs) <= 10 || authorizer.group('rbac.authorization.k8s.io')
+      .resource(variables.roleRefs[10].kind == 'Role' ? 'roles' : 'clusterroles')
+      .namespace(object.metadata.namespace).name(variables.roleRefs[10].name).check('bind').allowed()
+    message: roleRefs may only name roles you have permission to bind
+    reason: Forbidden
+  - expression: >-
+      size(variables.roleRefs) <= 11 || authorizer.group('rbac.authorization.k8s.io')
+      .resource(variables.roleRefs[11].kind == 'Role' ? 'roles' : 'clusterroles')
+      .namespace(object.metadata.namespace).name(variables.roleRefs[11].name).check('bind').allowed()
+    message: roleRefs may only name roles you have permission to bind
+    reason: Forbidden
+  - expression: >-
+      size(variables.roleRefs) <= 12 || authorizer.group('rbac.authorization.k8s.io')
+      .resource(variables.roleRefs[12].kind == 'Role' ? 'roles' : 'clusterroles')
+      .namespace(object.metadata.namespace).name(variables.roleRefs[12].name).check('bind').allowed()
+    message: roleRefs may only name roles you have permission to bind
+    reason: Forbidden
+  - expression: >-
+      size(variables.roleRefs) <= 13 || authorizer.group('rbac.authorization.k8s.io')
+      .resource(variables.roleRefs[13].kind == 'Role' ? 'roles' : 'clusterroles')
+      .namespace(object.metadata.namespace).name(variables.roleRefs[13].name).check('bind').allowed()
+    message: roleRefs may only name roles you have permission to bind
+    reason: Forbidden
+  - expression: >-
+      size(variables.roleRefs) <= 14 || authorizer.group('rbac.authorization.k8s.io')
+      .resource(variables.roleRefs[14].kind == 'Role' ? 'roles' : 'clusterroles')
+      .namespace(object.metadata.namespace).name(variables.roleRefs[14].name).check('bind').allowed()
+    message: roleRefs may only name roles you have permission to bind
+    reason: Forbidden
+  - expression: >-
+      size(variables.roleRefs) <= 15 || authorizer.group('rbac.authorization.k8s.io')
+      .resource(variables.roleRefs[15].kind == 'Role' ? 'roles' : 'clusterroles')
+      .namespace(object.metadata.namespace).name(variables.roleRefs[15].name).check('bind').allowed()
     message: roleRefs may only name roles you have permission to bind
     reason: Forbidden
 ---

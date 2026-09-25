@@ -74,6 +74,18 @@ var _ = Describe("Admission policy", func() {
 		}
 	}
 
+	// grantBindable creates n ClusterRole references the author may bind.
+	grantBindable := func(n int) []rbacv1.RoleRef {
+		refs := make([]rbacv1.RoleRef, n)
+		rules := make([]rbacv1.PolicyRule, n)
+		for i := range refs {
+			refs[i] = clusterRoleRef(uniqueName("many"))
+			rules[i] = canBind(refs[i])
+		}
+		grant(rules...)
+		return refs
+	}
+
 	enclaveWith := func(refs ...rbacv1.RoleRef) *enclavev1alpha1.Enclave {
 		enclave := testEnclave(uniqueName("policy"))
 		enclave.Spec.ServiceAccount = &enclavev1alpha1.ServiceAccountSpec{RoleRefs: refs}
@@ -144,5 +156,27 @@ var _ = Describe("Admission policy", func() {
 		Eventually(func() error {
 			return author.Create(ctx, pool)
 		}).Should(MatchError(ContainSubstring(unbindable)))
+	})
+	It("checks every roleRef of an Enclave with many", func() {
+		grant(canCreatePods)
+		refs := grantBindable(15)
+
+		Eventually(func() error {
+			return author.Create(ctx, enclaveWith(refs...))
+		}).Should(Succeed())
+		Expect(author.Create(ctx, enclaveWith(append(refs, admin)...))).
+			To(MatchError(ContainSubstring(unbindable)))
+		Expect(author.Create(ctx, enclaveWith(append(refs, view, view)...))).
+			To(MatchError(ContainSubstring("must have at most 16 items")))
+	})
+	It("checks every roleRef of an EnclavePool template with many", func() {
+		grant(canCreatePods)
+		refs := grantBindable(16)
+		pool := testPool(uniqueName("policy"), 0)
+		pool.Spec.Template.Spec.ServiceAccount = &enclavev1alpha1.ServiceAccountSpec{RoleRefs: refs}
+
+		Eventually(func() error {
+			return author.Create(ctx, pool)
+		}).Should(Succeed())
 	})
 })
