@@ -87,6 +87,9 @@ func (r *EnclaveReconciler) ensureObjects(ctx context.Context, enclave *enclavev
 	if err := r.ensureServiceAccount(ctx, enclave); err != nil {
 		return nil, false, err
 	}
+	if err := checkMounts(&enclave.Spec.EnvironmentSpec); err != nil {
+		return nil, false, err
+	}
 	pod := buildPod(enclave, r.gitImage())
 	if err := r.createIfMissing(ctx, enclave, pod); err != nil {
 		return nil, false, err
@@ -218,14 +221,14 @@ func roleBindingName(enclave *enclavev1alpha1.Enclave, ref rbacv1.RoleRef) strin
 	return enclave.Name + "-" + hex.EncodeToString(sum[:])[:10]
 }
 
-// conflictError reports an object the Enclave needs whose name is taken by
-// something the Enclave does not control.
+// conflictError reports a name or path the Enclave needs that something else
+// already uses.
 type conflictError struct {
-	kind, name string
+	msg string
 }
 
 func (e *conflictError) Error() string {
-	return fmt.Sprintf("%s %s already exists and is not controlled by this Enclave", e.kind, e.name)
+	return e.msg
 }
 
 // createIfMissing creates obj owned by the Enclave, or reads the existing
@@ -239,7 +242,7 @@ func (r *EnclaveReconciler) createIfMissing(ctx context.Context, enclave *enclav
 		if gvkErr != nil {
 			return gvkErr
 		}
-		return &conflictError{kind: gvk.Kind, name: obj.GetName()}
+		return &conflictError{fmt.Sprintf("%s %s already exists and is not controlled by this Enclave", gvk.Kind, obj.GetName())}
 	}
 	if !apierrors.IsNotFound(err) {
 		return err
