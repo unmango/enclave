@@ -139,7 +139,7 @@ func (r *EnclaveReconciler) ensureWorkspace(ctx context.Context, enclave *enclav
 func (r *EnclaveReconciler) ensureServiceAccount(ctx context.Context, enclave *enclavev1alpha1.Enclave) error {
 	spec := enclave.Spec.ServiceAccount
 	if spec == nil {
-		return nil
+		return r.deleteServiceAccount(ctx, enclave)
 	}
 
 	sa := &corev1.ServiceAccount{
@@ -172,7 +172,26 @@ func (r *EnclaveReconciler) ensureServiceAccount(ctx context.Context, enclave *e
 			return err
 		}
 	}
+	return r.deleteStaleRoleBindings(ctx, enclave, want)
+}
 
+// deleteServiceAccount removes the ServiceAccount and RoleBindings of an
+// Enclave whose spec no longer asks for them. The Pod is not recreated on spec
+// changes, so deleting the ServiceAccount is what revokes its tokens.
+func (r *EnclaveReconciler) deleteServiceAccount(ctx context.Context, enclave *enclavev1alpha1.Enclave) error {
+	if err := r.deleteStaleRoleBindings(ctx, enclave, nil); err != nil {
+		return err
+	}
+	sa := &corev1.ServiceAccount{}
+	err := r.Get(ctx, client.ObjectKey{Namespace: enclave.Namespace, Name: enclave.Name}, sa)
+	if err != nil || !metav1.IsControlledBy(sa, enclave) {
+		return client.IgnoreNotFound(err)
+	}
+	return client.IgnoreNotFound(r.Delete(ctx, sa))
+}
+
+// deleteStaleRoleBindings deletes the Enclave's RoleBindings not named in want.
+func (r *EnclaveReconciler) deleteStaleRoleBindings(ctx context.Context, enclave *enclavev1alpha1.Enclave, want map[string]bool) error {
 	existing := &rbacv1.RoleBindingList{}
 	if err := r.List(ctx, existing, client.InNamespace(enclave.Namespace),
 		client.MatchingLabels{enclavev1alpha1.EnclaveLabel: enclave.Name}); err != nil {
