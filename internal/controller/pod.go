@@ -164,7 +164,7 @@ func cloneInitContainer(env *enclavev1alpha1.EnvironmentSpec, mountPath, gitImag
 		}
 		creds := ""
 		if repo.CredentialsSecretRef != nil {
-			vol := "enclave-git-" + repo.Name
+			vol := fmt.Sprintf("enclave-git-%d", i)
 			creds = path.Join(gitCredsMountDir, repo.Name)
 			volumes = append(volumes, corev1.Volume{
 				Name: vol,
