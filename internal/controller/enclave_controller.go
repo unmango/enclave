@@ -10,6 +10,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
@@ -20,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -46,8 +48,6 @@ type EnclaveReconciler struct {
 // Reconcile creates the objects an Enclave owns and reports their state.
 // Owner references on every object let garbage collection clean up.
 func (r *EnclaveReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := logf.FromContext(ctx)
-
 	enclave := &enclavev1alpha1.Enclave{}
 	if err := r.Get(ctx, req.NamespacedName, enclave); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -57,29 +57,14 @@ func (r *EnclaveReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 	original := enclave.DeepCopy()
 
-	if err := r.ensureClaimSecret(ctx, enclave); err != nil {
-		return ctrl.Result{}, err
+	pod, workspaceReady, err := r.ensureObjects(ctx, enclave)
+	if conflict, ok := errors.AsType[*conflictError](err); ok {
+		setConflict(enclave, conflict)
+		if err := r.Status().Patch(ctx, enclave, client.MergeFrom(original)); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
-	workspaceReady, err := r.ensureWorkspace(ctx, enclave)
 	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if err := r.ensureServiceAccount(ctx, enclave); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	pod := &corev1.Pod{}
-	err = r.Get(ctx, client.ObjectKey{Namespace: enclave.Namespace, Name: enclave.Name}, pod)
-	if apierrors.IsNotFound(err) {
-		pod = buildPod(enclave, r.gitImage())
-		if err := controllerutil.SetControllerReference(enclave, pod, r.Scheme); err != nil {
-			return ctrl.Result{}, err
-		}
-		if err := r.Create(ctx, pod); err != nil {
-			return ctrl.Result{}, err
-		}
-		log.Info("Created Pod", "pod", pod.Name)
-	} else if err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -88,6 +73,25 @@ func (r *EnclaveReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
+}
+
+// ensureObjects creates whatever the Enclave owns that is missing.
+func (r *EnclaveReconciler) ensureObjects(ctx context.Context, enclave *enclavev1alpha1.Enclave) (*corev1.Pod, bool, error) {
+	if err := r.ensureClaimSecret(ctx, enclave); err != nil {
+		return nil, false, err
+	}
+	workspaceReady, err := r.ensureWorkspace(ctx, enclave)
+	if err != nil {
+		return nil, false, err
+	}
+	if err := r.ensureServiceAccount(ctx, enclave); err != nil {
+		return nil, false, err
+	}
+	pod := buildPod(enclave, r.gitImage())
+	if err := r.createIfMissing(ctx, enclave, pod); err != nil {
+		return nil, false, err
+	}
+	return pod, workspaceReady, nil
 }
 
 func (r *EnclaveReconciler) gitImage() string {
@@ -214,10 +218,29 @@ func roleBindingName(enclave *enclavev1alpha1.Enclave, ref rbacv1.RoleRef) strin
 	return enclave.Name + "-" + hex.EncodeToString(sum[:])[:10]
 }
 
+// conflictError reports an object the Enclave needs whose name is taken by
+// something the Enclave does not control.
+type conflictError struct {
+	kind, name string
+}
+
+func (e *conflictError) Error() string {
+	return fmt.Sprintf("%s %s already exists and is not controlled by this Enclave", e.kind, e.name)
+}
+
 // createIfMissing creates obj owned by the Enclave, or reads the existing
-// object into obj.
+// object into obj. An existing object the Enclave does not control is a
+// conflict; adopting it could mount another workload's Secret or bind roles to
+// its ServiceAccount.
 func (r *EnclaveReconciler) createIfMissing(ctx context.Context, enclave *enclavev1alpha1.Enclave, obj client.Object) error {
 	err := r.Get(ctx, client.ObjectKeyFromObject(obj), obj)
+	if err == nil && !metav1.IsControlledBy(obj, enclave) {
+		gvk, gvkErr := apiutil.GVKForObject(obj, r.Scheme)
+		if gvkErr != nil {
+			return gvkErr
+		}
+		return &conflictError{kind: gvk.Kind, name: obj.GetName()}
+	}
 	if !apierrors.IsNotFound(err) {
 		return err
 	}
@@ -291,6 +314,15 @@ func (r *EnclaveReconciler) setStatus(enclave *enclavev1alpha1.Enclave, pod *cor
 	default:
 		status.Phase = enclavev1alpha1.EnclaveReady
 	}
+}
+
+func setConflict(enclave *enclavev1alpha1.Enclave, conflict *conflictError) {
+	enclave.Status.Phase = enclavev1alpha1.EnclavePending
+	enclave.Status.ObservedGeneration = enclave.Generation
+	meta.SetStatusCondition(&enclave.Status.Conditions, metav1.Condition{
+		Type: enclavev1alpha1.ConditionReady, Status: metav1.ConditionFalse,
+		Reason: "Conflict", Message: conflict.Error(), ObservedGeneration: enclave.Generation,
+	})
 }
 
 func podReady(pod *corev1.Pod) bool {
