@@ -199,6 +199,7 @@ type EnclaveStatus struct {
 // +kubebuilder:printcolumn:name="Claim",type=string,JSONPath=".spec.claimRef.name"
 // +kubebuilder:printcolumn:name="Pod",type=string,JSONPath=".status.podName"
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:validation:XValidation:rule="size(self.metadata.name) <= 63",message="name must be no more than 63 characters, because it is used as a label value"
 
 // Enclave is a development environment: a Pod plus the state around it.
 type Enclave struct {
