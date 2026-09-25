@@ -80,6 +80,8 @@ func (r *EnclavePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		case !enclave.DeletionTimestamp.IsZero():
 		case enclave.Spec.ClaimRef != nil:
 			bound = append(bound, enclave)
+		case !metav1.IsControlledBy(enclave, pool):
+			// Anyone who can write an Enclave can set the pool label.
 		case enclave.Labels[enclavev1alpha1.TemplateHashLabel] != hash:
 			stale = append(stale, enclave)
 		default:

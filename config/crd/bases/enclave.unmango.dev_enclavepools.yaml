@@ -9324,6 +9324,10 @@ spec:
         required:
         - spec
         type: object
+        x-kubernetes-validations:
+        - message: name must be no more than 57 characters, so the names of its Enclaves
+            fit in a label value
+          rule: size(self.metadata.name) <= 57
     served: true
     storage: true
     subresources:

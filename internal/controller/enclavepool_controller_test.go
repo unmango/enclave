@@ -7,6 +7,8 @@ Licensed under the MIT License. See LICENSE in the project root for details.
 package controller
 
 import (
+	"strings"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -130,6 +132,32 @@ var _ = Describe("EnclavePool Controller", func() {
 			g.Expect(status.Replicas).To(BeEquivalentTo(1))
 			g.Expect(status.BoundReplicas).To(BeEquivalentTo(1))
 		}).Should(Succeed())
+	})
+
+	It("leaves Enclaves it does not control alone", func() {
+		Expect(k8sClient.Create(ctx, testPool(name, 1))).To(Succeed())
+		var owned []enclavev1alpha1.Enclave
+		Eventually(func(g Gomega) {
+			owned = poolEnclaves(g, name)
+			g.Expect(owned).To(HaveLen(1))
+		}).Should(Succeed())
+		readyAll(owned)
+
+		foreign := testEnclave(uniqueName("foreign"))
+		foreign.Labels = map[string]string{enclavev1alpha1.PoolLabel: name}
+		Expect(k8sClient.Create(ctx, foreign)).To(Succeed())
+
+		Consistently(func(g Gomega) {
+			getEnclave(g, foreign.Name)
+			g.Expect(getPool(g, name).Status.Replicas).To(BeEquivalentTo(1))
+		}, "2s").Should(Succeed())
+	})
+
+	It("rejects names too long for the Enclaves it creates", func() {
+		// Generated Enclave names add six characters, and must fit in a label value.
+		Expect(k8sClient.Create(ctx, testPool(strings.Repeat("a", 57), 0))).To(Succeed())
+		Expect(k8sClient.Create(ctx, testPool(strings.Repeat("a", 58), 0))).
+			To(MatchError(ContainSubstring("name must be no more than 57 characters")))
 	})
 
 	It("replaces warm Enclaves after a template change once new ones are ready", func() {
