@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -17,13 +18,26 @@ import (
 	enclavev1alpha1 "github.com/unmango/enclave/api/v1alpha1"
 )
 
+// cleanEnv drops inherited GIT_* variables. A git hook that runs the tests
+// sets GIT_DIR and friends, which would point these git commands at the
+// surrounding repository.
+func cleanEnv() []string {
+	var env []string
+	for _, kv := range os.Environ() {
+		if !strings.HasPrefix(kv, "GIT_") {
+			env = append(env, kv)
+		}
+	}
+	return env
+}
+
 var _ = Describe("Clone script", func() {
 	var workspace, origin string
 
 	git := func(dir string, args ...string) {
 		cmd := exec.Command("git", args...)
 		cmd.Dir = dir
-		cmd.Env = append(os.Environ(),
+		cmd.Env = append(cleanEnv(),
 			"GIT_AUTHOR_NAME=test", "GIT_AUTHOR_EMAIL=test@example.com",
 			"GIT_COMMITTER_NAME=test", "GIT_COMMITTER_EMAIL=test@example.com",
 		)
@@ -37,7 +51,7 @@ var _ = Describe("Clone script", func() {
 		env := enclavev1alpha1.EnvironmentSpec{Repositories: repos}
 		clone, _ := cloneInitContainer(&env, workspace, DefaultGitImage)
 		cmd := exec.Command(clone.Command[0], clone.Command[1:]...)
-		cmd.Env = append(os.Environ(), "GIT_CONFIG_GLOBAL=/dev/null")
+		cmd.Env = append(cleanEnv(), "GIT_CONFIG_GLOBAL=/dev/null")
 		for _, v := range clone.Env {
 			if v.Name != "HOME" {
 				cmd.Env = append(cmd.Env, v.Name+"="+v.Value)
