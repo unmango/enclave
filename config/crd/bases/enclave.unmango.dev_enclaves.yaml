@@ -9065,6 +9065,9 @@ spec:
             - message: claimRef is immutable once set
               rule: '!has(oldSelf.claimRef) || (has(self.claimRef) && self.claimRef
                 == oldSelf.claimRef)'
+            - message: volume names starting with enclave- are reserved
+              rule: '!has(self.template.spec.volumes) || self.template.spec.volumes.all(v,
+                !v.name.startsWith(''enclave-''))'
           status:
             description: status defines the observed state of Enclave
             properties:

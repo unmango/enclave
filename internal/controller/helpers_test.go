@@ -11,11 +11,15 @@ import (
 	"sync/atomic"
 
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 
 	enclavev1alpha1 "github.com/unmango/enclave/api/v1alpha1"
 )
 
-const testNamespace = "default"
+const (
+	testNamespace = "default"
+	testImage     = "busybox"
+)
 
 var nameSeq atomic.Int64
 
@@ -31,7 +35,7 @@ func testEnvironment() enclavev1alpha1.EnvironmentSpec {
 			Spec: corev1.PodSpec{
 				Containers: []corev1.Container{{
 					Name:    "dev",
-					Image:   "busybox",
+					Image:   testImage,
 					Command: []string{"sleep", "infinity"},
 				}},
 			},
@@ -63,4 +67,8 @@ func testClaim(name, pool string) *enclavev1alpha1.EnclaveClaim {
 			PoolRef: corev1.LocalObjectReference{Name: pool},
 		},
 	}
+}
+
+func clusterRoleRef(name string) rbacv1.RoleRef {
+	return rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "ClusterRole", Name: name}
 }

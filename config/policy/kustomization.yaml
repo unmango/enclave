@@ -1,0 +1,3 @@
+resources:
+- enclave_policy.yaml
+- enclavepool_policy.yaml
