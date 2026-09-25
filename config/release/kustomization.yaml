@@ -10,4 +10,4 @@ resources:
 images:
 - name: enclave
   newName: ghcr.io/unmango/enclave
-  newTag: 0.0.1 # x-release-please-version
+  newTag: 0.1.0 # x-release-please-version
