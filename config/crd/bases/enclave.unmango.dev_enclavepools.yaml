@@ -185,6 +185,7 @@ spec:
                               - name
                               type: object
                               x-kubernetes-map-type: atomic
+                            maxItems: 16
                             type: array
                         type: object
                       template:
