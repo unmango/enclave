@@ -136,8 +136,8 @@ var _ = Describe("Enclave Controller", func() {
 	})
 
 	It("creates a ServiceAccount and one RoleBinding per roleRef", func() {
-		view := rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "ClusterRole", Name: "view"}
-		edit := rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "ClusterRole", Name: "edit"}
+		view := clusterRoleRef("view")
+		edit := clusterRoleRef("edit")
 		enclave := testEnclave(name)
 		enclave.Spec.ServiceAccount = &enclavev1alpha1.ServiceAccountSpec{RoleRefs: []rbacv1.RoleRef{view, edit}}
 		Expect(k8sClient.Create(ctx, enclave)).To(Succeed())

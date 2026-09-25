@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 
 	enclavev1alpha1 "github.com/unmango/enclave/api/v1alpha1"
 )
@@ -63,4 +64,8 @@ func testClaim(name, pool string) *enclavev1alpha1.EnclaveClaim {
 			PoolRef: corev1.LocalObjectReference{Name: pool},
 		},
 	}
+}
+
+func clusterRoleRef(name string) rbacv1.RoleRef {
+	return rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "ClusterRole", Name: name}
 }

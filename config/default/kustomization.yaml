@@ -1,4 +1,6 @@
 # Adds namespace to all resources.
+# config/policy exempts the manager by its ServiceAccount username, which
+# includes this namespace and the namePrefix below. Update it with them.
 namespace: enclave-system
 
 # Value of this field is prepended to the
@@ -25,6 +27,8 @@ resources:
 #- ../certmanager
 # [PROMETHEUS] To enable prometheus monitor, uncomment all sections with 'PROMETHEUS'.
 #- ../prometheus
+# Makes Enclave and EnclavePool authors hold the permissions the operator uses for them.
+- ../policy
 # [METRICS] Expose the controller manager metrics service.
 - metrics_service.yaml
 # [NETWORK POLICY] Protect the /metrics endpoint and Webhook Server with NetworkPolicy.
