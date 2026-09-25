@@ -269,6 +269,17 @@ func (r *EnclaveClaimReconciler) projectSecrets(
 	} else if err != nil {
 		return err
 	}
+	if !metav1.IsControlledBy(target, enclave) {
+		// Projecting into it would copy the claim's Secrets into an object
+		// someone else owns and may be able to read.
+		meta.SetStatusCondition(&claim.Status.Conditions, metav1.Condition{
+			Type: enclavev1alpha1.ConditionSecretsProjected, Status: metav1.ConditionFalse,
+			Reason:             "Conflict",
+			Message:            fmt.Sprintf("Secret %s is not controlled by Enclave %s", target.Name, enclave.Name),
+			ObservedGeneration: claim.Generation,
+		})
+		return nil
+	}
 
 	data := map[string][]byte{enclavev1alpha1.ClaimNameKey: []byte(claim.Name)}
 	source := map[string]string{enclavev1alpha1.ClaimNameKey: "the claim name"}

@@ -190,6 +190,26 @@ var _ = Describe("EnclaveClaim Controller", func() {
 		}).Should(Succeed())
 	})
 
+	It("does not write into a claim Secret the Enclave does not control", func() {
+		warm := warmPool(pool)
+		secret := &corev1.Secret{}
+		key := client.ObjectKey{Namespace: testNamespace, Name: warm.Name + "-claim"}
+		Expect(k8sClient.Get(ctx, key, secret)).To(Succeed())
+		secret.OwnerReferences = nil
+		Expect(k8sClient.Update(ctx, secret)).To(Succeed())
+
+		Expect(k8sClient.Create(ctx, testClaim(name, pool))).To(Succeed())
+		Expect(boundEnclaveName(name)).To(Equal(warm.Name))
+
+		Eventually(func(g Gomega) {
+			g.Expect(getClaim(g, name).Status.Conditions).To(ContainElement(And(
+				HaveField("Type", enclavev1alpha1.ConditionSecretsProjected),
+				HaveField("Reason", "Conflict"),
+			)))
+		}).Should(Succeed())
+		Expect(claimSecretData(Default, warm.Name)).To(BeEmpty())
+	})
+
 	It("reports Lost when its Enclave is deleted", func() {
 		warmPool(pool)
 		Expect(k8sClient.Create(ctx, testClaim(name, pool))).To(Succeed())
