@@ -51,6 +51,7 @@ type EnvironmentSpec struct {
 	// +listType=map
 	// +listMapKey=name
 	// +kubebuilder:validation:MaxItems=32
+	// +kubebuilder:validation:XValidation:rule="self.all(r, self.exists_one(o, (has(o.path) ? o.path : o.name) == (has(r.path) ? r.path : r.name)))",message="repository paths must be unique"
 	// +optional
 	Repositories []Repository `json:"repositories,omitempty"`
 
@@ -108,6 +109,7 @@ type Repository struct {
 	// path is the clone destination relative to the workspace. Defaults to name.
 	// +kubebuilder:validation:MaxLength=255
 	// +kubebuilder:validation:XValidation:rule="!self.startsWith('/') && !self.matches('(^|/)[.][.](/|$)')",message="path must be relative and stay inside the workspace"
+	// +kubebuilder:validation:XValidation:rule="!self.matches('(^|/)[.](/|$)|/$|//')",message="path must not have empty or '.' segments"
 	// +optional
 	Path string `json:"path,omitempty"`
 

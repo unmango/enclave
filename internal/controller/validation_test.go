@@ -15,29 +15,62 @@ import (
 )
 
 var _ = Describe("API validation", func() {
-	const first, second = "first", "second"
+	const (
+		first, second = "first", "second"
+		repoURL       = "https://example.com/repo.git"
+	)
 
 	DescribeTable("repository paths",
-		func(path string, valid bool) {
+		func(path, rejection string) {
 			enclave := testEnclave(uniqueName("path"))
 			enclave.Spec.Repositories = []enclavev1alpha1.Repository{{
 				Name: "repo",
-				URL:  "https://example.com/repo.git",
+				URL:  repoURL,
 				Path: path,
 			}}
+
+			err := k8sClient.Create(ctx, enclave)
+			if rejection == "" {
+				Expect(err).NotTo(HaveOccurred())
+			} else {
+				Expect(err).To(MatchError(ContainSubstring(rejection)))
+			}
+		},
+		Entry("nested", "src/repo", ""),
+		Entry("dots in a name", "a..b", ""),
+		Entry("absolute", "/etc", "path must be relative"),
+		Entry("parent", "..", "path must be relative"),
+		Entry("parent in the middle", "a/../../b", "path must be relative"),
+		Entry("current directory", ".", "path must not have empty or '.' segments"),
+		Entry("current directory in the middle", "a/./b", "path must not have empty or '.' segments"),
+		Entry("trailing slash", "a/", "path must not have empty or '.' segments"),
+		Entry("doubled slash", "a//b", "path must not have empty or '.' segments"),
+	)
+
+	DescribeTable("repository destinations",
+		func(repos []enclavev1alpha1.Repository, valid bool) {
+			enclave := testEnclave(uniqueName("dest"))
+			enclave.Spec.Repositories = repos
 
 			err := k8sClient.Create(ctx, enclave)
 			if valid {
 				Expect(err).NotTo(HaveOccurred())
 			} else {
-				Expect(err).To(MatchError(ContainSubstring("path must be relative")))
+				Expect(err).To(MatchError(ContainSubstring("repository paths must be unique")))
 			}
 		},
-		Entry("nested", "src/repo", true),
-		Entry("dots in a name", "a..b", true),
-		Entry("absolute", "/etc", false),
-		Entry("parent", "..", false),
-		Entry("parent in the middle", "a/../../b", false),
+		Entry("distinct names", []enclavev1alpha1.Repository{
+			{Name: "a", URL: repoURL},
+			{Name: "b", URL: repoURL},
+		}, true),
+		Entry("path matching another name", []enclavev1alpha1.Repository{
+			{Name: "a", URL: repoURL},
+			{Name: "b", URL: repoURL, Path: "a"},
+		}, false),
+		Entry("same path", []enclavev1alpha1.Repository{
+			{Name: "a", URL: repoURL, Path: "src"},
+			{Name: "b", URL: repoURL, Path: "src"},
+		}, false),
 	)
 
 	It("rejects changing an Enclave's claimRef", func() {

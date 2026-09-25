@@ -133,6 +133,8 @@ spec:
                               - message: path must be relative and stay inside the
                                   workspace
                                 rule: '!self.startsWith(''/'') && !self.matches(''(^|/)[.][.](/|$)'')'
+                              - message: path must not have empty or '.' segments
+                                rule: '!self.matches(''(^|/)[.](/|$)|/$|//'')'
                             ref:
                               description: ref is a branch or tag to check out. The
                                 remote's default branch is used when unset.
@@ -150,6 +152,10 @@ spec:
                         x-kubernetes-list-map-keys:
                         - name
                         x-kubernetes-list-type: map
+                        x-kubernetes-validations:
+                        - message: repository paths must be unique
+                          rule: 'self.all(r, self.exists_one(o, (has(o.path) ? o.path
+                            : o.name) == (has(r.path) ? r.path : r.name)))'
                       serviceAccount:
                         description: |-
                           serviceAccount requests a ServiceAccount of the Enclave's own, bound to the listed roles.
