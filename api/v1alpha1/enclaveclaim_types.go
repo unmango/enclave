@@ -17,6 +17,7 @@ type EnclaveClaimSpec struct {
 	// poolRef names the EnclavePool to draw an Enclave from.
 	// When the pool has no ready Enclave, one is created from its template.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="poolRef is immutable"
+	// +kubebuilder:validation:XValidation:rule="self.name != ''",message="poolRef.name is required"
 	// +required
 	PoolRef corev1.LocalObjectReference `json:"poolRef"`
 

@@ -110,6 +110,11 @@ var _ = Describe("API validation", func() {
 		Expect(k8sClient.Update(ctx, claim)).To(MatchError(ContainSubstring("poolRef is immutable")))
 	})
 
+	It("rejects a claim without a pool name", func() {
+		claim := testClaim(uniqueName("claim"), "")
+		Expect(k8sClient.Create(ctx, claim)).To(MatchError(ContainSubstring("poolRef.name is required")))
+	})
+
 	It("keeps labels on a pool's embedded templates", func() {
 		pool := testPool(uniqueName("pool"), 0)
 		pool.Spec.Template.Labels = map[string]string{"enclave": "label"}

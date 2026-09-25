@@ -77,6 +77,8 @@ spec:
                 x-kubernetes-validations:
                 - message: poolRef is immutable
                   rule: self == oldSelf
+                - message: poolRef.name is required
+                  rule: self.name != ''
               secretRefs:
                 description: |-
                   secretRefs name Secrets whose keys are projected into the bound Enclave at /var/run/enclave/claim.
