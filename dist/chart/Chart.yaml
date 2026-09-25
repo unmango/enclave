@@ -1,18 +1,17 @@
 apiVersion: v2
 name: enclave
-description: A Kubernetes operator that runs development environments as warm, claimable Pods
+description: >-
+  A Kubernetes operator that runs development environments as warm, claimable
+  Pods
 type: application
 home: https://github.com/unmango/enclave
 sources:
   - https://github.com/unmango/enclave
-
-version: 0.0.1
-appVersion: "0.0.1"
-
+version: 0.1.0
+appVersion: 0.1.0
 keywords:
   - kubernetes
   - operator
   - development-environment
-
 annotations:
   kubebuilder.io/generated-by: kubebuilder
