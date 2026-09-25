@@ -70,16 +70,24 @@ Delete the Pod to have it recreated from the new spec.
 
 When `spec.repositories` is set, an init container clones each repository into the workspace before the environment starts.
 It uses the image from the operator's `--git-image` flag, which must provide `sh` and `git`, and runs as the first container's `securityContext`, so the clones are owned by the user who works in them.
+The default image runs as root, so a `securityContext` with `runAsNonRoot: true` also needs an explicit `runAsUser`, at the container or Pod level, for the clone to start.
 A repository whose destination already has a `.git` directory is skipped, so a persistent workspace keeps local changes across Pod restarts.
 
 `credentialsSecretRef` takes a `kubernetes.io/basic-auth` Secret (`username`, `password`) or a `kubernetes.io/ssh-auth` Secret (`ssh-privatekey`).
 
 ## Security
 
-The operator can create RoleBindings to any Role or ClusterRole, because `spec.serviceAccount.roleRefs` asks it to.
-It holds the `bind` verb on roles and clusterroles for that purpose.
-Anyone who can create an `Enclave` or `EnclavePool` in a namespace can therefore give a Pod in that namespace any role.
-Grant create on those resources only to users who could create the same RoleBindings themselves.
+The operator creates Pods and RoleBindings on behalf of whoever writes an `Enclave` or `EnclavePool`, and holds the `bind` verb on every Role and ClusterRole to do so.
+RBAC's own checks see the operator, not the author.
+A ValidatingAdmissionPolicy per resource, in `config/policy`, puts the author through the same checks: they need `create` on Pods in the namespace, and `bind` on each Role or ClusterRole in `serviceAccount.roleRefs`.
+The check is stricter than RBAC's, which also lets a user bind a role whose permissions they already hold.
+
+The operator's ServiceAccount is exempt, because it writes Enclaves for pools and claims whose authors already passed the policy.
+A claim gets the roles its pool's author chose.
+The exemption names the ServiceAccount as `system:serviceaccount:enclave-system:enclave-controller-manager`, so a deployment that changes the namespace or name prefix has to change the policies to match.
+A deployment without `config/policy` lets anyone who can write an Enclave or EnclavePool bind any role.
+
+Removing `spec.serviceAccount` from an Enclave deletes its ServiceAccount and RoleBindings, which revokes the tokens of the Pod that is still running.
 
 Claim Secrets are copied into a Secret in the Enclave's namespace, which is the claim's namespace.
 They do not cross namespaces.
