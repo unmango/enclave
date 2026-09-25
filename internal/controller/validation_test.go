@@ -73,6 +73,18 @@ var _ = Describe("API validation", func() {
 		}, false),
 	)
 
+	It("reserves the enclave- prefix for volume names", func() {
+		enclave := testEnclave(uniqueName("volume"))
+		enclave.Spec.Template.Spec.Volumes = []corev1.Volume{{
+			Name: "enclave-workspace", EmptyDir: &corev1.EmptyDirVolumeSource{},
+		}}
+		Expect(k8sClient.Create(ctx, enclave)).To(MatchError(ContainSubstring("volume names starting with enclave- are reserved")))
+
+		pool := testPool(uniqueName("volume"), 1)
+		pool.Spec.Template.Spec.Template.Spec.Volumes = enclave.Spec.Template.Spec.Volumes
+		Expect(k8sClient.Create(ctx, pool)).To(MatchError(ContainSubstring("volume names starting with enclave- are reserved")))
+	})
+
 	It("rejects changing an Enclave's claimRef", func() {
 		enclave := testEnclave(uniqueName("claimref"))
 		enclave.Spec.ClaimRef = &corev1.LocalObjectReference{Name: first}
