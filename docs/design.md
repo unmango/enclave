@@ -60,6 +60,8 @@ On a duplicate, the first Secret listed wins, and the `SecretsProjected` conditi
 ## Reserved names
 
 An Enclave named `x` owns a Pod `x`, a Secret `x-claim`, a PersistentVolumeClaim `x-workspace` when its workspace has storage, and a ServiceAccount `x` with RoleBindings `x-<hash>` when `spec.serviceAccount` is set.
+An Enclave's name is also a label value on those objects, so it is limited to 63 characters.
+Pool names are limited to 57 and claim names to 54, so the Enclave names generated from them fit.
 If an object the Enclave does not control already holds one of those names, the Enclave reports `Ready=False` with reason `Conflict` and does not adopt it.
 The claim controller likewise projects nothing into a claim Secret the Enclave does not control.
 
@@ -95,9 +97,14 @@ The check is stricter than RBAC's, which also lets a user bind a role whose perm
 The operator's ServiceAccount is exempt, because it writes Enclaves for pools and claims whose authors already passed the policy.
 A claim gets the roles its pool's author chose.
 The exemption names the ServiceAccount as `system:serviceaccount:enclave-system:enclave-controller-manager`, so a deployment that changes the namespace or name prefix has to change the policies to match.
-A deployment without `config/policy` lets anyone who can write an Enclave or EnclavePool bind any role.
+A deployment without `config/policy` lets anyone who can write an Enclave or EnclavePool bind any role, and anyone who can write an EnclaveClaim read any Secret in its namespace.
 
 Removing `spec.serviceAccount` from an Enclave deletes its ServiceAccount and RoleBindings, which revokes the tokens of the Pod that is still running.
 
 Claim Secrets are copied into a Secret in the Enclave's namespace, which is the claim's namespace.
 They do not cross namespaces.
+The copy is readable from inside the Enclave, so the claim policy requires the author to hold `get` on each Secret in `spec.secretRefs`.
+Without it, anyone who can create an EnclaveClaim could read any Secret in the namespace.
+
+An authorizer check in CEL costs 350k of an expression's 1M budget, so each policy checks one roleRef or Secret per expression.
+`roleRefs` and `secretRefs` are capped at 16 items so the checks fit in a policy's 10M budget.
