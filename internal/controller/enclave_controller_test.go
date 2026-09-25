@@ -182,6 +182,45 @@ var _ = Describe("Enclave Controller", func() {
 		}).Should(Succeed())
 	})
 
+	DescribeTable("refuses objects it does not control",
+		func(existing func(name string) client.Object) {
+			Expect(k8sClient.Create(ctx, existing(name))).To(Succeed())
+			Expect(k8sClient.Create(ctx, testEnclave(name))).To(Succeed())
+
+			Eventually(func(g Gomega) {
+				g.Expect(getEnclave(g, name).Status.Conditions).To(ContainElement(And(
+					HaveField("Type", enclavev1alpha1.ConditionReady),
+					HaveField("Status", metav1.ConditionFalse),
+					HaveField("Reason", "Conflict"),
+				)))
+			}).Should(Succeed())
+		},
+		Entry("a Pod", func(name string) client.Object {
+			return &corev1.Pod{
+				Name: name, Namespace: testNamespace,
+				Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "other", Image: "busybox"}}},
+			}
+		}),
+		Entry("a claim Secret", func(name string) client.Object {
+			return &corev1.Secret{Name: name + "-claim", Namespace: testNamespace}
+		}),
+	)
+
+	It("does not bind roles to a ServiceAccount it does not control", func() {
+		Expect(k8sClient.Create(ctx, &corev1.ServiceAccount{Name: name, Namespace: testNamespace})).To(Succeed())
+		enclave := testEnclave(name)
+		enclave.Spec.ServiceAccount = &enclavev1alpha1.ServiceAccountSpec{RoleRefs: []rbacv1.RoleRef{clusterRoleRef("view")}}
+		Expect(k8sClient.Create(ctx, enclave)).To(Succeed())
+
+		Eventually(func(g Gomega) {
+			g.Expect(getEnclave(g, name).Status.Conditions).To(ContainElement(HaveField("Reason", "Conflict")))
+		}).Should(Succeed())
+		list := &rbacv1.RoleBindingList{}
+		Expect(k8sClient.List(ctx, list, client.InNamespace(testNamespace),
+			client.MatchingLabels{enclavev1alpha1.EnclaveLabel: name})).To(Succeed())
+		Expect(list.Items).To(BeEmpty())
+	})
+
 	It("clones repositories in an init container that runs as the first container", func() {
 		enclave := testEnclave(name)
 		enclave.Spec.Template.Spec.Containers[0].SecurityContext = &corev1.SecurityContext{
