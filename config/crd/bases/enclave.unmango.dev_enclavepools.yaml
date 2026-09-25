@@ -9221,6 +9221,10 @@ spec:
                     required:
                     - template
                     type: object
+                    x-kubernetes-validations:
+                    - message: volume names starting with enclave- are reserved
+                      rule: '!has(self.template.spec.volumes) || self.template.spec.volumes.all(v,
+                        !v.name.startsWith(''enclave-''))'
                 required:
                 - spec
                 type: object

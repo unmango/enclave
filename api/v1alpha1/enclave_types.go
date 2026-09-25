@@ -35,6 +35,8 @@ const (
 
 // EnvironmentSpec describes a development environment: the pod and the state around it.
 // It is shared by Enclave and the template of an EnclavePool.
+// The operator adds volumes named enclave-*, so the template may not use the prefix.
+// +kubebuilder:validation:XValidation:rule="!has(self.template.spec.volumes) || self.template.spec.volumes.all(v, !v.name.startsWith('enclave-'))",message="volume names starting with enclave- are reserved"
 type EnvironmentSpec struct {
 	// template describes the Pod that runs the environment.
 	// The operator adds the workspace and claim volumes, and a clone init container when repositories are listed.
