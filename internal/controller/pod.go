@@ -25,6 +25,7 @@ const (
 	workspaceVolume  = "enclave-workspace"
 	claimVolume      = "enclave-claim"
 	cloneContainer   = "enclave-clone"
+	cloneTmpVolume   = "enclave-clone-tmp"
 	gitCredsMountDir = "/var/run/enclave/git"
 )
 
@@ -145,8 +146,16 @@ func cloneInitContainer(env *enclavev1alpha1.EnvironmentSpec, mountPath, gitImag
 		corev1.EnvVar{Name: "HOME", Value: "/tmp"},
 		corev1.EnvVar{Name: "REPO_COUNT", Value: fmt.Sprint(len(env.Repositories))},
 	)
-	mounts := []corev1.VolumeMount{{Name: workspaceVolume, MountPath: mountPath}}
-	var volumes []corev1.Volume
+	// The clone writes SSH keys and known_hosts under /tmp, which has to stay
+	// writable when the copied securityContext sets readOnlyRootFilesystem.
+	mounts := []corev1.VolumeMount{
+		{Name: cloneTmpVolume, MountPath: "/tmp"},
+		{Name: workspaceVolume, MountPath: mountPath},
+	}
+	volumes := []corev1.Volume{{
+		Name:     cloneTmpVolume,
+		EmptyDir: &corev1.EmptyDirVolumeSource{},
+	}}
 
 	for i, repo := range env.Repositories {
 		dest := repo.Path
