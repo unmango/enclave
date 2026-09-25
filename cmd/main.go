@@ -188,8 +188,9 @@ func main() {
 		os.Exit(1)
 	}
 	if err := (&controller.EnclaveClaimReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		APIReader: mgr.GetAPIReader(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "Failed to create controller", "controller", "enclaveclaim")
 		os.Exit(1)

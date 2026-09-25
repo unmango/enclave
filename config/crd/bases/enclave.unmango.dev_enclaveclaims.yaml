@@ -99,6 +99,7 @@ spec:
                       type: string
                   type: object
                   x-kubernetes-map-type: atomic
+                maxItems: 16
                 type: array
             required:
             - poolRef
@@ -184,6 +185,10 @@ spec:
         required:
         - spec
         type: object
+        x-kubernetes-validations:
+        - message: name must be no more than 54 characters, so the name of an Enclave
+            created for it fits in a label value
+          rule: size(self.metadata.name) <= 54
     served: true
     storage: true
     subresources:
