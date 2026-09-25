@@ -48,6 +48,8 @@ func setPodPhase(name string, phase corev1.PodPhase, ready bool) {
 }
 
 var _ = Describe("Enclave Controller", func() {
+	const customWorkspace = "/home/dev"
+
 	var name string
 
 	BeforeEach(func() {
@@ -107,7 +109,7 @@ var _ = Describe("Enclave Controller", func() {
 	It("backs the workspace with a PersistentVolumeClaim when storage is set", func() {
 		enclave := testEnclave(name)
 		enclave.Spec.Workspace = &enclavev1alpha1.WorkspaceSpec{
-			MountPath: "/home/dev",
+			MountPath: customWorkspace,
 			Storage:   &enclavev1alpha1.WorkspaceStorage{Size: resource.MustParse("1Gi")},
 		}
 		Expect(k8sClient.Create(ctx, enclave)).To(Succeed())
@@ -126,7 +128,7 @@ var _ = Describe("Enclave Controller", func() {
 				"PersistentVolumeClaim", HaveValue(HaveField("ClaimName", name+"-workspace")),
 			)))
 			g.Expect(pod.Spec.Containers[0].VolumeMounts).To(ContainElement(
-				corev1.VolumeMount{Name: workspaceVolume, MountPath: "/home/dev"},
+				corev1.VolumeMount{Name: workspaceVolume, MountPath: customWorkspace},
 			))
 			g.Expect(getEnclave(g, name).Status.Conditions).To(ContainElement(And(
 				HaveField("Type", enclavev1alpha1.ConditionWorkspaceReady),
@@ -198,7 +200,7 @@ var _ = Describe("Enclave Controller", func() {
 		Entry("a Pod", func(name string) client.Object {
 			return &corev1.Pod{
 				Name: name, Namespace: testNamespace,
-				Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "other", Image: "busybox"}}},
+				Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "other", Image: testImage}}},
 			}
 		}),
 		Entry("a claim Secret", func(name string) client.Object {
@@ -220,6 +222,42 @@ var _ = Describe("Enclave Controller", func() {
 			client.MatchingLabels{enclavev1alpha1.EnclaveLabel: name})).To(Succeed())
 		Expect(list.Items).To(BeEmpty())
 	})
+
+	DescribeTable("mount paths the operator uses",
+		func(workspace *enclavev1alpha1.WorkspaceSpec, init bool, mountPath string, valid bool) {
+			enclave := testEnclave(name)
+			enclave.Spec.Workspace = workspace
+			mount := corev1.VolumeMount{Name: "data", MountPath: mountPath}
+			enclave.Spec.Template.Spec.Volumes = []corev1.Volume{{Name: "data", EmptyDir: &corev1.EmptyDirVolumeSource{}}}
+			if init {
+				enclave.Spec.Template.Spec.InitContainers = []corev1.Container{{
+					Name: "init", Image: testImage, VolumeMounts: []corev1.VolumeMount{mount},
+				}}
+			} else {
+				enclave.Spec.Template.Spec.Containers[0].VolumeMounts = []corev1.VolumeMount{mount}
+			}
+			Expect(k8sClient.Create(ctx, enclave)).To(Succeed())
+
+			if valid {
+				Eventually(func(g Gomega) { getPod(g, name) }).Should(Succeed())
+				return
+			}
+			Eventually(func(g Gomega) {
+				g.Expect(getEnclave(g, name).Status.Conditions).To(ContainElement(And(
+					HaveField("Reason", "Conflict"),
+					HaveField("Message", ContainSubstring(mountPath)),
+				)))
+			}).Should(Succeed())
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Namespace: testNamespace, Name: name}, &corev1.Pod{})).
+				To(MatchError(ContainSubstring("not found")))
+		},
+		Entry("default workspace", nil, false, "/workspace", false),
+		Entry("custom workspace", &enclavev1alpha1.WorkspaceSpec{MountPath: customWorkspace}, false, customWorkspace, false),
+		Entry("claim path", nil, false, enclavev1alpha1.ClaimMountPath, false),
+		Entry("in an init container", nil, true, "/workspace", false),
+		Entry("inside the workspace", nil, false, "/workspace/data", true),
+		Entry("default path with a custom workspace", &enclavev1alpha1.WorkspaceSpec{MountPath: customWorkspace}, false, "/workspace", true),
+	)
 
 	It("clones repositories in an init container that runs as the first container", func() {
 		enclave := testEnclave(name)

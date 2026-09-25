@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"maps"
 	"path"
+	"slices"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -96,6 +97,26 @@ func buildPod(enclave *enclavev1alpha1.Enclave, gitImage string) *corev1.Pod {
 	}
 
 	return pod
+}
+
+// checkMounts rejects a template that mounts a volume where the operator mounts
+// the workspace or the claim Secret. A CEL rule on the CRD would be cleaner,
+// but containers and volumeMounts are unbounded lists, which puts it far over
+// the CRD cost budget.
+func checkMounts(env *enclavev1alpha1.EnvironmentSpec) error {
+	reserved := map[string]string{
+		workspaceMountPath(env):        "workspace",
+		enclavev1alpha1.ClaimMountPath: "claim Secret",
+	}
+	spec := &env.Template.Spec
+	for _, c := range slices.Concat(spec.InitContainers, spec.Containers) {
+		for _, m := range c.VolumeMounts {
+			if use, ok := reserved[m.MountPath]; ok {
+				return &conflictError{fmt.Sprintf("container %s mounts %s, where the operator mounts the %s", c.Name, m.MountPath, use)}
+			}
+		}
+	}
+	return nil
 }
 
 func workspaceVolumeFor(enclave *enclavev1alpha1.Enclave) corev1.Volume {
