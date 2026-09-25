@@ -1,0 +1,13 @@
+# The operator, its CRDs and RBAC, and the admission policies, running the
+# released image. Apply it server-side: the CRDs embed a PodTemplateSpec and
+# are too large for the last-applied-configuration annotation.
+#
+#   kubectl apply --server-side -k 'https://github.com/unmango/enclave/config/release?ref=v<version>'
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../default
+images:
+- name: enclave
+  newName: ghcr.io/unmango/enclave
+  newTag: 0.0.1 # x-release-please-version

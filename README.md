@@ -37,6 +37,18 @@ helm install enclave oci://ghcr.io/unmango/charts/enclave \
 
 Each chart is tagged only with its released version, so `--version` is required.
 
+### Kustomize
+
+`config/release` is the operator, its CRDs and RBAC, and the admission policies, running the released image:
+
+```bash
+kubectl apply --server-side -k 'https://github.com/unmango/enclave/config/release?ref=v<version>'
+```
+
+Apply it server-side: the CRDs embed a PodTemplateSpec and are too large for the annotation client-side apply writes.
+Use it as a base to change the namespace or add patches.
+The policies skip the operator's ServiceAccount, `enclave-system/enclave-controller-manager`, by name. An overlay that renames it leaves the operator's writes checked too, which it passes, since it holds `create` on Pods and `bind` on every role.
+
 ### Verifying a release
 
 Release images and charts carry build provenance from the release workflow:

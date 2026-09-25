@@ -8,6 +8,7 @@
       "bump-minor-pre-major": true,
       "extra-files": [
         { "type": "generic", "path": "flake.nix" },
+        { "type": "generic", "path": "config/release/kustomization.yaml" },
         { "type": "yaml", "path": "dist/chart/Chart.yaml", "jsonpath": "$.version" },
         { "type": "yaml", "path": "dist/chart/Chart.yaml", "jsonpath": "$.appVersion" }
       ]
