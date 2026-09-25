@@ -161,8 +161,8 @@ PUSH_IMAGE ?= ghcr.io/unmango/enclave
 IMAGE_TAG  ?= latest
 
 .PHONY: push-image
-push-image: bin/image.tar ## Push the image to $(PUSH_IMAGE):$(IMAGE_TAG).
-	$(SKOPEO) copy docker-archive:bin/image.tar 'docker://$(PUSH_IMAGE):$(IMAGE_TAG)'
+push-image: bin/image.tar ## Push the image to $(PUSH_IMAGE):$(IMAGE_TAG), writing its digest to bin/image.digest.
+	$(SKOPEO) copy --digestfile bin/image.digest docker-archive:bin/image.tar 'docker://$(PUSH_IMAGE):$(IMAGE_TAG)'
 
 ##@ Deployment
 

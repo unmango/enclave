@@ -47,7 +47,7 @@
           ...
         }:
         let
-          version = "0.0.1";
+          version = "0.0.1"; # x-release-please-version
           k8sVersion = "1.37";
 
           k8s = inputs'.kubepkgs.legacyPackages.kubernetes.${k8sVersion};
