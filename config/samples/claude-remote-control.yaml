@@ -1,0 +1,81 @@
+# Claude Code Remote Control in a claimed Enclave.
+#
+# While an Enclave is warm, its Pod installs Claude Code and tmux and the
+# clone init container checks out the repository. The Pod reports ready only
+# once that is done, so a claim hands out an environment that is ready to use.
+#
+# Remote Control needs a full claude.ai login (Pro, Max, Team or Enterprise)
+# and asks two questions on first run, so it is started by hand once the
+# Enclave is claimed:
+#
+#   kubectl apply -f config/samples/claude-remote-control.yaml
+#   kubectl get enclaveclaim claude            # ENCLAVE column names the Pod
+#   kubectl exec -it <enclave> -- tmux new -s claude -c /workspace/enclave
+#
+# Then, inside tmux:
+#
+#   claude auth login                          # open the printed URL
+#   claude                                     # accept workspace trust, then /exit
+#   claude remote-control --name "$(cat /var/run/enclave/claim/ENCLAVE_CLAIM)"
+#
+# Detach with Ctrl-b d. The session appears in claude.ai/code and the Claude
+# app. HOME is on the workspace volume, so the login survives Pod restarts.
+# Deleting the claim deletes the Enclave, its workspace and the login.
+#
+# The Pod needs outbound HTTPS to api.anthropic.com, claude.ai and
+# platform.claude.com.
+apiVersion: enclave.unmango.dev/v1alpha1
+kind: EnclavePool
+metadata:
+  name: claude
+spec:
+  replicas: 1
+  template:
+    spec:
+      workspace:
+        storage:
+          size: 10Gi
+      repositories:
+        - name: enclave
+          url: https://github.com/unmango/enclave.git
+      template:
+        spec:
+          containers:
+            - name: dev
+              image: docker.io/library/node:24-bookworm-slim
+              env:
+                - name: HOME
+                  value: /workspace/.home
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -eu
+                  apt-get update
+                  apt-get install -y --no-install-recommends ca-certificates git tmux
+                  npm install --global @anthropic-ai/claude-code
+                  mkdir -p "$HOME"
+                  touch /tmp/ready
+                  exec sleep infinity
+              readinessProbe:
+                exec:
+                  command: ["test", "-f", "/tmp/ready"]
+                periodSeconds: 5
+              resources:
+                requests:
+                  cpu: 500m
+                  memory: 2Gi
+                limits:
+                  memory: 4Gi
+---
+apiVersion: enclave.unmango.dev/v1alpha1
+kind: EnclaveClaim
+metadata:
+  name: claude
+spec:
+  poolRef:
+    name: claude
+  # Secrets listed here appear under /var/run/enclave/claim, for example a
+  # GitHub token for pushing from the Enclave.
+  # secretRefs:
+  #   - name: github-token
