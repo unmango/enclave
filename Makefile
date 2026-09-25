@@ -120,10 +120,30 @@ HELM_RELEASE   ?= enclave
 HELM_NAMESPACE ?= enclave-system
 CHART          ?= dist/chart
 
+.PHONY: helm
+# The plugin renders the chart from dist/install.yaml and runs build-installer
+# itself. It rewrites every template it owns on each run, so the only hand-owned
+# pieces are the files it leaves alone: values.yaml, Chart.yaml, and the
+# templates it did not generate.
+#
+# It also leaves things behind that this repo does not want: a Go-based
+# test-chart workflow, an `##@ Helm Deployment` block appended to the end of this
+# file whose install-helm target pipes curl into bash, and admission policy
+# templates that lose the policy to its binding, which policies.sh replaces.
+helm: ## Regenerate the Helm chart in dist/chart.
+	kubebuilder edit --plugins=helm.kubebuilder.io/v2-alpha
+	rm -f .github/workflows/test-chart.yml
+	sed -i.bak '/^##@ Helm Deployment$$/,$$d' Makefile && rm -f Makefile.bak
+	./hack/chart/policies.sh $(CHART)
+
 .PHONY: helm-lint
 helm-lint: ## Lint the chart and render it with the default values.
 	$(HELM) lint $(CHART)
 	$(HELM) template $(HELM_RELEASE) $(CHART) > /dev/null
+
+.PHONY: test-chart
+test-chart: setup-test-e2e kind-load ## Install the chart into the Kind cluster and check its admission policies.
+	KUBECONFIG=$(E2E_KUBECONFIG) ./hack/chart/smoke.sh $(CHART) enclave latest
 
 .PHONY: helm-deploy
 # Defining this target also stops `kubebuilder edit` from appending its own helm
@@ -163,6 +183,16 @@ IMAGE_TAG  ?= latest
 .PHONY: push-image
 push-image: bin/image.tar ## Push the image to $(PUSH_IMAGE):$(IMAGE_TAG), writing its digest to bin/image.digest.
 	$(SKOPEO) copy --digestfile bin/image.digest docker-archive:bin/image.tar 'docker://$(PUSH_IMAGE):$(IMAGE_TAG)'
+
+PUSH_CHART    ?= oci://ghcr.io/unmango/charts
+CHART_VERSION  = $(shell awk '/^version:/{print $$2}' $(CHART)/Chart.yaml)
+
+.PHONY: push-chart
+push-chart: | bin ## Package the chart and push it to $(PUSH_CHART), writing its digest to bin/chart.digest.
+	$(HELM) package $(CHART) --destination bin
+	$(HELM) push bin/enclave-$(CHART_VERSION).tgz '$(PUSH_CHART)' 2>&1 | tee bin/chart-push.log
+	awk '/^Digest:/{print $$2}' bin/chart-push.log > bin/chart.digest
+	test -s bin/chart.digest
 
 ##@ Deployment
 

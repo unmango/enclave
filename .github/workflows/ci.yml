@@ -39,7 +39,12 @@ jobs:
 
       - uses: DeterminateSystems/magic-nix-cache-action@84c0677f58dcedf3b91f8223ce36a9ea5b3c84b7 # v15
 
-      - run: nix develop -c make lint-config lint
+      - run: nix develop -c make lint-config lint helm-lint
+
+      # dist/chart is generated from config/ by the kubebuilder helm plugin and
+      # committed. If this fails, run `make helm` and commit the result.
+      - run: nix develop -c make helm
+      - run: git diff --exit-code -- dist/chart PROJECT Makefile
 
   test:
     runs-on: ubuntu-latest
@@ -72,6 +77,10 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@84c0677f58dcedf3b91f8223ce36a9ea5b3c84b7 # v15
 
       - run: nix develop -c make test-e2e
+
+      # `make test-e2e` deletes its cluster on the way out, so the chart gets a
+      # fresh one.
+      - run: nix develop -c make test-chart
 
       - if: always()
         run: nix develop -c make cleanup-test-e2e
