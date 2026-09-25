@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -166,6 +167,18 @@ var _ = Describe("Enclave Controller", func() {
 
 		Eventually(func(g Gomega) {
 			g.Expect(bindings(g)).To(ConsistOf(HaveField("RoleRef", view)))
+		}).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			enclave := getEnclave(g, name)
+			enclave.Spec.ServiceAccount = nil
+			g.Expect(k8sClient.Update(ctx, enclave)).To(Succeed())
+		}).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			g.Expect(bindings(g)).To(BeEmpty())
+			err := k8sClient.Get(ctx, client.ObjectKey{Namespace: testNamespace, Name: name}, &corev1.ServiceAccount{})
+			g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
 		}).Should(Succeed())
 	})
 
