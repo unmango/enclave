@@ -1,0 +1,112 @@
+# The operator copies every Secret in a claim's secretRefs into the bound
+# Enclave, so RBAC never sees who asked. This policy makes the author hold get
+# on each of those Secrets, so a claim cannot read a Secret its author cannot.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: {{ include "enclave.resourceName" (dict "suffix" "enclaveclaims-authorization" "context" $) }}
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups: ["enclave.unmango.dev"]
+      apiVersions: ["*"]
+      operations: ["CREATE", "UPDATE"]
+      resources: ["enclaveclaims"]
+  variables:
+  - name: secretRefs
+    expression: "has(object.spec.secretRefs) ? object.spec.secretRefs : []"
+  validations:
+  # One expression per Secret: an authorizer check costs 350k and an
+  # expression may spend 1M, so a single all() fails past two Secrets.
+  # secretRefs is capped at 16 items to match.
+  # messageExpression cannot call the authorizer, so the message cannot name
+  # the Secret that failed.
+  - expression: >-
+      size(variables.secretRefs) <= 0 || authorizer.group('').resource('secrets')
+      .namespace(object.metadata.namespace).name(variables.secretRefs[0].name).check('get').allowed()
+    message: secretRefs may only name Secrets you have permission to get
+    reason: Forbidden
+  - expression: >-
+      size(variables.secretRefs) <= 1 || authorizer.group('').resource('secrets')
+      .namespace(object.metadata.namespace).name(variables.secretRefs[1].name).check('get').allowed()
+    message: secretRefs may only name Secrets you have permission to get
+    reason: Forbidden
+  - expression: >-
+      size(variables.secretRefs) <= 2 || authorizer.group('').resource('secrets')
+      .namespace(object.metadata.namespace).name(variables.secretRefs[2].name).check('get').allowed()
+    message: secretRefs may only name Secrets you have permission to get
+    reason: Forbidden
+  - expression: >-
+      size(variables.secretRefs) <= 3 || authorizer.group('').resource('secrets')
+      .namespace(object.metadata.namespace).name(variables.secretRefs[3].name).check('get').allowed()
+    message: secretRefs may only name Secrets you have permission to get
+    reason: Forbidden
+  - expression: >-
+      size(variables.secretRefs) <= 4 || authorizer.group('').resource('secrets')
+      .namespace(object.metadata.namespace).name(variables.secretRefs[4].name).check('get').allowed()
+    message: secretRefs may only name Secrets you have permission to get
+    reason: Forbidden
+  - expression: >-
+      size(variables.secretRefs) <= 5 || authorizer.group('').resource('secrets')
+      .namespace(object.metadata.namespace).name(variables.secretRefs[5].name).check('get').allowed()
+    message: secretRefs may only name Secrets you have permission to get
+    reason: Forbidden
+  - expression: >-
+      size(variables.secretRefs) <= 6 || authorizer.group('').resource('secrets')
+      .namespace(object.metadata.namespace).name(variables.secretRefs[6].name).check('get').allowed()
+    message: secretRefs may only name Secrets you have permission to get
+    reason: Forbidden
+  - expression: >-
+      size(variables.secretRefs) <= 7 || authorizer.group('').resource('secrets')
+      .namespace(object.metadata.namespace).name(variables.secretRefs[7].name).check('get').allowed()
+    message: secretRefs may only name Secrets you have permission to get
+    reason: Forbidden
+  - expression: >-
+      size(variables.secretRefs) <= 8 || authorizer.group('').resource('secrets')
+      .namespace(object.metadata.namespace).name(variables.secretRefs[8].name).check('get').allowed()
+    message: secretRefs may only name Secrets you have permission to get
+    reason: Forbidden
+  - expression: >-
+      size(variables.secretRefs) <= 9 || authorizer.group('').resource('secrets')
+      .namespace(object.metadata.namespace).name(variables.secretRefs[9].name).check('get').allowed()
+    message: secretRefs may only name Secrets you have permission to get
+    reason: Forbidden
+  - expression: >-
+      size(variables.secretRefs) <= 10 || authorizer.group('').resource('secrets')
+      .namespace(object.metadata.namespace).name(variables.secretRefs[10].name).check('get').allowed()
+    message: secretRefs may only name Secrets you have permission to get
+    reason: Forbidden
+  - expression: >-
+      size(variables.secretRefs) <= 11 || authorizer.group('').resource('secrets')
+      .namespace(object.metadata.namespace).name(variables.secretRefs[11].name).check('get').allowed()
+    message: secretRefs may only name Secrets you have permission to get
+    reason: Forbidden
+  - expression: >-
+      size(variables.secretRefs) <= 12 || authorizer.group('').resource('secrets')
+      .namespace(object.metadata.namespace).name(variables.secretRefs[12].name).check('get').allowed()
+    message: secretRefs may only name Secrets you have permission to get
+    reason: Forbidden
+  - expression: >-
+      size(variables.secretRefs) <= 13 || authorizer.group('').resource('secrets')
+      .namespace(object.metadata.namespace).name(variables.secretRefs[13].name).check('get').allowed()
+    message: secretRefs may only name Secrets you have permission to get
+    reason: Forbidden
+  - expression: >-
+      size(variables.secretRefs) <= 14 || authorizer.group('').resource('secrets')
+      .namespace(object.metadata.namespace).name(variables.secretRefs[14].name).check('get').allowed()
+    message: secretRefs may only name Secrets you have permission to get
+    reason: Forbidden
+  - expression: >-
+      size(variables.secretRefs) <= 15 || authorizer.group('').resource('secrets')
+      .namespace(object.metadata.namespace).name(variables.secretRefs[15].name).check('get').allowed()
+    message: secretRefs may only name Secrets you have permission to get
+    reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: {{ include "enclave.resourceName" (dict "suffix" "enclaveclaims-authorization" "context" $) }}
+spec:
+  policyName: {{ include "enclave.resourceName" (dict "suffix" "enclaveclaims-authorization" "context" $) }}
+  validationActions: [Deny]

@@ -22,6 +22,30 @@ make help
 
 The Kubernetes package set is pinned by `k8sVersion` in `flake.nix`.
 
+## Install
+
+The operator needs Kubernetes 1.30 or later for ValidatingAdmissionPolicy.
+It creates Pods and RoleBindings for whoever writes an Enclave, EnclavePool, or EnclaveClaim, so every install method includes the admission policies that check those authors.
+`docs/design.md` describes what they check.
+
+### Helm
+
+```bash
+helm install enclave oci://ghcr.io/unmango/charts/enclave \
+  --version <version> --namespace enclave-system --create-namespace
+```
+
+Each chart is tagged only with its released version, so `--version` is required.
+
+### Verifying a release
+
+Release images and charts carry build provenance from the release workflow:
+
+```bash
+gh attestation verify oci://ghcr.io/unmango/enclave:<version> --repo unmango/enclave
+gh attestation verify oci://ghcr.io/unmango/charts/enclave:<version> --repo unmango/enclave
+```
+
 ## Usage
 
 Create a pool of warm environments, then claim one:
