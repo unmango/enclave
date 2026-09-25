@@ -1,0 +1,46 @@
+# The operator creates the Pod and RoleBindings an Enclave asks for, so RBAC never
+# sees who asked. This policy makes the author pass the same checks: create on
+# Pods, and bind on every role in roleRefs. The operator is exempt, because it
+# writes enclaves on behalf of authors this policy already checked.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: enclaves-authorization
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups: ["enclave.unmango.dev"]
+      apiVersions: ["*"]
+      operations: ["CREATE", "UPDATE"]
+      resources: ["enclaves"]
+  matchConditions:
+  # Must match the manager's ServiceAccount after config/default applies its
+  # namespace and namePrefix.
+  - name: not-the-operator
+    expression: request.userInfo.username != 'system:serviceaccount:enclave-system:enclave-controller-manager'
+  variables:
+  - name: roleRefs
+    expression: >-
+      has(object.spec.serviceAccount) && has(object.spec.serviceAccount.roleRefs)
+      ? object.spec.serviceAccount.roleRefs : []
+  validations:
+  - expression: authorizer.group('').resource('pods').namespace(object.metadata.namespace).check('create').allowed()
+    message: creating an Enclave requires permission to create Pods in its namespace
+    reason: Forbidden
+  # messageExpression cannot call the authorizer, so the message cannot name
+  # the role that failed.
+  - expression: >-
+      variables.roleRefs.all(r, authorizer.group('rbac.authorization.k8s.io')
+      .resource(r.kind == 'Role' ? 'roles' : 'clusterroles')
+      .namespace(object.metadata.namespace).name(r.name).check('bind').allowed())
+    message: roleRefs may only name roles you have permission to bind
+    reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: enclaves-authorization
+spec:
+  policyName: enclaves-authorization
+  validationActions: [Deny]
