@@ -1,0 +1,6 @@
+## Append samples of your project ##
+resources:
+- enclave_v1alpha1_enclave.yaml
+- enclave_v1alpha1_enclavepool.yaml
+- enclave_v1alpha1_enclaveclaim.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples
