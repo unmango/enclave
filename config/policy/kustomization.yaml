@@ -1,3 +1,4 @@
 resources:
 - enclave_policy.yaml
+- enclaveclaim_policy.yaml
 - enclavepool_policy.yaml

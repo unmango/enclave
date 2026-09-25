@@ -131,6 +131,13 @@ var _ = Describe("API validation", func() {
 		Expect(k8sClient.Update(ctx, claim)).To(MatchError(ContainSubstring("poolRef is immutable")))
 	})
 
+	It("limits claim names so the Enclaves created for them fit in a label value", func() {
+		// An Enclave created for a claim adds nine characters to its name.
+		Expect(k8sClient.Create(ctx, testClaim(strings.Repeat("a", 54), first))).To(Succeed())
+		Expect(k8sClient.Create(ctx, testClaim(strings.Repeat("a", 55), first))).
+			To(MatchError(ContainSubstring("name must be no more than 54 characters")))
+	})
+
 	It("rejects a claim without a pool name", func() {
 		claim := testClaim(uniqueName("claim"), "")
 		Expect(k8sClient.Create(ctx, claim)).To(MatchError(ContainSubstring("poolRef.name is required")))

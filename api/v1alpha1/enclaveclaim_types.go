@@ -23,6 +23,7 @@ type EnclaveClaimSpec struct {
 
 	// secretRefs name Secrets whose keys are projected into the bound Enclave at /var/run/enclave/claim.
 	// Keys must be unique across the listed Secrets.
+	// +kubebuilder:validation:MaxItems=16
 	// +optional
 	SecretRefs []corev1.LocalObjectReference `json:"secretRefs,omitempty"`
 }
@@ -71,6 +72,7 @@ type EnclaveClaimStatus struct {
 // +kubebuilder:printcolumn:name="Pool",type=string,JSONPath=".spec.poolRef.name"
 // +kubebuilder:printcolumn:name="Enclave",type=string,JSONPath=".status.enclaveName"
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:validation:XValidation:rule="size(self.metadata.name) <= 54",message="name must be no more than 54 characters, so the name of an Enclave created for it fits in a label value"
 
 // EnclaveClaim requests an Enclave from an EnclavePool.
 // Deleting the claim deletes the Enclave bound to it.

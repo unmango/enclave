@@ -12,6 +12,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -45,7 +46,10 @@ func installPolicies() {
 }
 
 var _ = Describe("Admission policy", func() {
-	const unbindable = "roleRefs may only name roles you have permission to bind"
+	const (
+		unbindable = "roleRefs may only name roles you have permission to bind"
+		unreadable = "secretRefs may only name Secrets you have permission to get"
+	)
 	view := clusterRoleRef("view")
 	admin := clusterRoleRef("admin")
 
@@ -86,6 +90,20 @@ var _ = Describe("Admission policy", func() {
 		return refs
 	}
 
+	canGetSecret := func(name string) rbacv1.PolicyRule {
+		return rbacv1.PolicyRule{
+			APIGroups: []string{""}, Resources: []string{"secrets"},
+			ResourceNames: []string{name}, Verbs: []string{"get"},
+		}
+	}
+	claimWith := func(secrets ...string) *enclavev1alpha1.EnclaveClaim {
+		claim := testClaim(uniqueName("policy"), "pool")
+		for _, name := range secrets {
+			claim.Spec.SecretRefs = append(claim.Spec.SecretRefs, corev1.LocalObjectReference{Name: name})
+		}
+		return claim
+	}
+
 	enclaveWith := func(refs ...rbacv1.RoleRef) *enclavev1alpha1.Enclave {
 		enclave := testEnclave(uniqueName("policy"))
 		enclave.Spec.ServiceAccount = &enclavev1alpha1.ServiceAccountSpec{RoleRefs: refs}
@@ -100,7 +118,7 @@ var _ = Describe("Admission policy", func() {
 		Expect(err).NotTo(HaveOccurred())
 		grant(rbacv1.PolicyRule{
 			APIGroups: []string{enclavev1alpha1.GroupVersion.Group},
-			Resources: []string{"enclaves", "enclavepools"},
+			Resources: []string{"enclaves", "enclavepools", "enclaveclaims"},
 			Verbs:     []string{"get", "create", "update"},
 		})
 	})
@@ -169,6 +187,7 @@ var _ = Describe("Admission policy", func() {
 		Expect(author.Create(ctx, enclaveWith(append(refs, view, view)...))).
 			To(MatchError(ContainSubstring("must have at most 16 items")))
 	})
+
 	It("checks every roleRef of an EnclavePool template with many", func() {
 		grant(canCreatePods)
 		refs := grantBindable(16)
@@ -178,5 +197,47 @@ var _ = Describe("Admission policy", func() {
 		Eventually(func() error {
 			return author.Create(ctx, pool)
 		}).Should(Succeed())
+	})
+
+	It("allows a claim without secretRefs", func() {
+		Eventually(func() error {
+			return author.Create(ctx, claimWith())
+		}).Should(Succeed())
+	})
+
+	It("requires get on each Secret a claim projects", func() {
+		mine, theirs := uniqueName("mine"), uniqueName("theirs")
+		grant(canGetSecret(mine))
+
+		Eventually(func() error {
+			return author.Create(ctx, claimWith(mine, theirs))
+		}).Should(MatchError(ContainSubstring(unreadable)))
+		Expect(author.Create(ctx, claimWith(mine))).To(Succeed())
+	})
+
+	It("rejects adding a secretRef on update", func() {
+		mine, theirs := uniqueName("mine"), uniqueName("theirs")
+		grant(canGetSecret(mine))
+		claim := claimWith(mine)
+		Eventually(func() error { return author.Create(ctx, claim) }).Should(Succeed())
+
+		claim.Spec.SecretRefs = append(claim.Spec.SecretRefs, corev1.LocalObjectReference{Name: theirs})
+		Expect(author.Update(ctx, claim)).To(MatchError(ContainSubstring(unreadable)))
+	})
+
+	It("checks every Secret of a claim with many", func() {
+		names := make([]string, 16, 17)
+		rules := make([]rbacv1.PolicyRule, len(names))
+		for i := range names {
+			names[i] = uniqueName("many")
+			rules[i] = canGetSecret(names[i])
+		}
+		grant(rules...)
+
+		Eventually(func() error {
+			return author.Create(ctx, claimWith(names...))
+		}).Should(Succeed())
+		Expect(author.Create(ctx, claimWith(append(names, "extra")...))).
+			To(MatchError(ContainSubstring("must have at most 16 items")))
 	})
 })
