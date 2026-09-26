@@ -153,17 +153,9 @@ schema = 3
     version = 'v1.1.0'
     hash = 'sha256-XWlYH0c8IcxAwQTnIi6WYqq44nOKUylSWxWO/vi+8pE='
 
-  [mod.'github.com/josharian/intern']
-    version = 'v1.0.0'
-    hash = 'sha256-LJR0QE2vOQ2/2shBbO5Yl8cVPq+NFrE3ers0vu9FRP0='
-
   [mod.'github.com/json-iterator/go']
     version = 'v1.1.12'
     hash = 'sha256-To8A0h+lbfZ/6zM+2PpRpY3+L6725OPC66lffq6fUoM='
-
-  [mod.'github.com/mailru/easyjson']
-    version = 'v0.9.2'
-    hash = 'sha256-178Wz0XN1ghBYXWYQMSbByqPfsUc0mAf+p6j6mAJ4jg='
 
   [mod.'github.com/modern-go/concurrent']
     version = 'v0.0.0-20180306012644-bacd9c7ef1dd'
@@ -182,8 +174,8 @@ schema = 3
     hash = 'sha256-dbprIPI9nmIWGqO9p1kG5W5rDpcDMZwvigmd3CmG3Sk='
 
   [mod.'github.com/onsi/gomega']
-    version = 'v1.40.0'
-    hash = 'sha256-FbdhUXLOJrEmiUOJqkWr9TT0ci8pJQBhGtBmRCsvR7U='
+    version = 'v1.44.0'
+    hash = 'sha256-xSjOiuDOVt9GGtagJPD8UF3Do3ZnkgaQ3CALnONJk6Y='
 
   [mod.'github.com/pmezard/go-difflib']
     version = 'v1.0.1-0.20181226105442-5d4384ee4fb2'
@@ -212,10 +204,6 @@ schema = 3
   [mod.'github.com/spf13/pflag']
     version = 'v1.0.10'
     hash = 'sha256-uDPnWjHpSrzXr17KEYEA1yAbizfcsfo5AyztY2tS6ZU='
-
-  [mod.'github.com/stoewer/go-strcase']
-    version = 'v1.3.1'
-    hash = 'sha256-yptboRvbZtX+OEdlTgJnrCT+bvaMgCJp5B9ifEaSfw0='
 
   [mod.'github.com/x448/float16']
     version = 'v0.8.4'
@@ -341,10 +329,6 @@ schema = 3
     version = 'v0.9.1'
     hash = 'sha256-z84XlyeWLcoYOvWLxPkPFgLkpjyb2Y4pdeGMyySOZQI='
 
-  [mod.'gopkg.in/yaml.v3']
-    version = 'v3.0.1'
-    hash = 'sha256-FqL9TKYJ0XkNwJFnq9j0VvJ5ZUU1RvH/52h/f5bkYAU='
-
   [mod.'k8s.io/api']
     version = 'v0.37.1'
     hash = 'sha256-T7DJwuBM8gGHWslVG++OZLrz6hNVmgITFZq9eaFeiT4='
@@ -404,10 +388,6 @@ schema = 3
   [mod.'sigs.k8s.io/structured-merge-diff/v6']
     version = 'v6.4.2'
     hash = 'sha256-Q4GT7pinbkhNOae9Q3WuTKAVOLqNvrP9EfrEDEM1S3I='
-
-  [mod.'sigs.k8s.io/structured-merge-diff/v7']
-    version = 'v7.0.0'
-    hash = 'sha256-Et15YmkfyMwk6NZYXnO/J7ZuUN9UusiSw3t6KHjvTOY='
 
   [mod.'sigs.k8s.io/yaml']
     version = 'v1.6.0'
