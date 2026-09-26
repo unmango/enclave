@@ -75,7 +75,7 @@
           # operator is exposed as a check to make CI compile it.
           checks.operator = operator;
 
-          devShells.default = pkgs.mkShellNoCC {
+          devShells.default = pkgs.mkShell {
             packages =
               (with pkgs; [
                 ginkgo

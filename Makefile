@@ -49,7 +49,7 @@ test: manifests generate vet ## Run unit and envtest suites.
 	$(GINKGO) run -r --skip-package=test
 
 .PHONY: lint
-lint: ## Run golangci-lint linter.
+lint: lint-config helm-lint ## Run golangci-lint linter.
 	$(GOLANGCI_LINT) run
 
 .PHONY: lint-fix
@@ -229,7 +229,7 @@ update: ## Update nix flake inputs.
 	nix flake update
 
 .PHONY: check
-check: ## Run nix flake checks.
+check: lint ## Run nix flake checks.
 	nix flake check
 
 .PHONY: tidy
