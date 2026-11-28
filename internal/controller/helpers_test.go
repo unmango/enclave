@@ -30,8 +30,7 @@ func uniqueName(prefix string) string {
 	return fmt.Sprintf("%s-%d", prefix, nameSeq.Add(1))
 }
 
-// update re-reads obj, applies mutate and updates it through c. Run it in an
-// Eventually: the manager also writes to obj, so an Update can conflict.
+// update must run in an Eventually: the manager also writes obj, so an Update can conflict.
 func update(c client.Client, obj client.Object, mutate func()) func() error {
 	return func() error {
 		if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {

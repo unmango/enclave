@@ -1,5 +1,3 @@
-# `make lint` and `make test` in the build sandbox, reusing the operator's
-# source and vendored modules.
 {
   bash,
   ginkgo,
@@ -25,8 +23,7 @@ let
         gnumake
         golangci-lint
         k8s.sigs.kustomize
-        # Its wrapper puts its own go first on PATH, which would download the
-        # toolchain go.mod asks for.
+        # Its wrapper's go would download the toolchain go.mod asks for.
         (kubebuilder.override { inherit (operator) go; })
         kubernetes-controller-tools
         kubernetes-helm
@@ -41,8 +38,7 @@ let
         patchShebangs hack
         substituteInPlace Makefile --replace-fail "/usr/bin/env bash" ${bash}/bin/bash
 
-        # gomod2nix vendors whole modules, nested go.mod and go.work files
-        # included, and controller-gen loads each one as its own root.
+        # controller-gen loads each vendored module's go.mod as a root.
         chmod -R u+w vendor
         find vendor -mindepth 2 \( -name go.mod -o -name go.work \) -delete
 
@@ -59,8 +55,7 @@ in
     make lint-config lint helm-lint
     kustomize build config/release > /dev/null
 
-    # dist/chart is generated from config/ by the kubebuilder helm plugin and
-    # committed. If this fails, run `make helm` and commit the result.
+    # dist/chart is `make helm` output, committed.
     cp -r . "$TMPDIR/before"
     make helm
     for path in dist/chart PROJECT Makefile; do
