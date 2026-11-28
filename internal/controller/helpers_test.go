@@ -12,6 +12,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	enclavev1alpha1 "github.com/unmango/enclave/api/v1alpha1"
 )
@@ -27,6 +28,18 @@ var nameSeq atomic.Int64
 // have to wait for the previous spec's objects to be garbage collected.
 func uniqueName(prefix string) string {
 	return fmt.Sprintf("%s-%d", prefix, nameSeq.Add(1))
+}
+
+// update re-reads obj, applies mutate and updates it through c. Run it in an
+// Eventually: the manager also writes to obj, so an Update can conflict.
+func update(c client.Client, obj client.Object, mutate func()) func() error {
+	return func() error {
+		if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+			return err
+		}
+		mutate()
+		return c.Update(ctx, obj)
+	}
 }
 
 func testEnvironment() enclavev1alpha1.EnvironmentSpec {
