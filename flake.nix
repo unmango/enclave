@@ -26,6 +26,15 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.systems.follows = "systems";
     };
+
+    mynix = {
+      url = "github:UnstoppableMango/nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-parts.follows = "flake-parts";
+      inputs.gomod2nix.follows = "gomod2nix";
+      inputs.systems.follows = "systems";
+      inputs.treefmt-nix.follows = "treefmt-nix";
+    };
   };
 
   outputs =
@@ -34,6 +43,7 @@
       systems = import inputs.systems;
 
       imports = with inputs; [
+        mynix.flakeModules.ci
         systems.flakeModule
         treefmt-nix.flakeModule
       ];
@@ -71,9 +81,16 @@
             inherit envtest-assets;
           };
 
-          # `nix flake check` evaluates `packages` without building them, so the
-          # operator is exposed as a check to make CI compile it.
-          checks.operator = operator;
+          checks = {
+            # `nix flake check` evaluates `packages` without building them, so the
+            # operator is exposed as a check to make CI compile it.
+            inherit operator;
+          }
+          // pkgs.callPackages ./nix/checks.nix { inherit k8s operator; };
+
+          # A fresh checkout gives every file one mtime, so the tidy file
+          # targets need `-B`.
+          ci.fixup.steps = [ "nix develop --command make -B tidy manifests generate helm" ];
 
           devShells.default = pkgs.mkShell {
             packages =

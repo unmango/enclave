@@ -62,6 +62,11 @@ var _ = BeforeSuite(func() {
 		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: true,
 	}
+	// Left unset, the apiserver looks for a default route, which the nix build
+	// sandbox lacks. The endpoint reconciler rejects a loopback address.
+	testEnv.ControlPlane.GetAPIServer().Configure().
+		Set("advertise-address", "127.0.0.1").
+		Set("endpoint-reconciler-type", "none")
 
 	// Retrieve the first found binary directory to allow running tests from IDEs
 	if getFirstFoundEnvTestBinaryDir() != "" {
