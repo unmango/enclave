@@ -9,6 +9,16 @@ permissions:
   contents: read
 
 jobs:
+  nix:
+    uses: unmango/ci/.github/workflows/nix-ci.yml@30ae545a17dc3cd88663c8d0aa92ae374b62779c
+    permissions:
+      checks: read
+      contents: read
+      pull-requests: write
+      statuses: read
+    secrets:
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
   build:
     runs-on: thecluster
     steps:
@@ -75,3 +85,13 @@ jobs:
 
       - if: always()
         run: nix develop -c make cleanup-test-e2e
+
+  required:
+    needs: [nix, test-e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: jq -e 'all(.[]; .result == "success" or .result == "skipped")' <<<"$NEEDS"

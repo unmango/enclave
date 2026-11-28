@@ -99,19 +99,20 @@ var _ = Describe("API validation", func() {
 		enclave.Spec.ClaimRef = &corev1.LocalObjectReference{Name: first}
 		Expect(k8sClient.Create(ctx, enclave)).To(Succeed())
 
-		enclave.Spec.ClaimRef.Name = second
-		Expect(k8sClient.Update(ctx, enclave)).To(MatchError(ContainSubstring("claimRef is immutable")))
+		Eventually(update(k8sClient, enclave, func() { enclave.Spec.ClaimRef.Name = second })).
+			Should(MatchError(ContainSubstring("claimRef is immutable")))
 
-		enclave.Spec.ClaimRef = nil
-		Expect(k8sClient.Update(ctx, enclave)).To(MatchError(ContainSubstring("claimRef is immutable")))
+		Eventually(update(k8sClient, enclave, func() { enclave.Spec.ClaimRef = nil })).
+			Should(MatchError(ContainSubstring("claimRef is immutable")))
 	})
 
 	It("allows setting an Enclave's claimRef once", func() {
 		enclave := testEnclave(uniqueName("claimref"))
 		Expect(k8sClient.Create(ctx, enclave)).To(Succeed())
 
-		enclave.Spec.ClaimRef = &corev1.LocalObjectReference{Name: first}
-		Expect(k8sClient.Update(ctx, enclave)).To(Succeed())
+		Eventually(update(k8sClient, enclave, func() {
+			enclave.Spec.ClaimRef = &corev1.LocalObjectReference{Name: first}
+		})).Should(Succeed())
 	})
 
 	It("rejects changing an Enclave's poolRef", func() {
@@ -119,16 +120,16 @@ var _ = Describe("API validation", func() {
 		enclave.Spec.PoolRef = &corev1.LocalObjectReference{Name: first}
 		Expect(k8sClient.Create(ctx, enclave)).To(Succeed())
 
-		enclave.Spec.PoolRef.Name = second
-		Expect(k8sClient.Update(ctx, enclave)).To(MatchError(ContainSubstring("poolRef is immutable")))
+		Eventually(update(k8sClient, enclave, func() { enclave.Spec.PoolRef.Name = second })).
+			Should(MatchError(ContainSubstring("poolRef is immutable")))
 	})
 
 	It("rejects changing a claim's poolRef", func() {
 		claim := testClaim(uniqueName("claim"), first)
 		Expect(k8sClient.Create(ctx, claim)).To(Succeed())
 
-		claim.Spec.PoolRef.Name = second
-		Expect(k8sClient.Update(ctx, claim)).To(MatchError(ContainSubstring("poolRef is immutable")))
+		Eventually(update(k8sClient, claim, func() { claim.Spec.PoolRef.Name = second })).
+			Should(MatchError(ContainSubstring("poolRef is immutable")))
 	})
 
 	It("limits claim names so the Enclaves created for them fit in a label value", func() {

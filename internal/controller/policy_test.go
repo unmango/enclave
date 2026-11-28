@@ -162,8 +162,9 @@ var _ = Describe("Admission policy", func() {
 		enclave := enclaveWith(view)
 		Eventually(func() error { return author.Create(ctx, enclave) }).Should(Succeed())
 
-		enclave.Spec.ServiceAccount.RoleRefs = append(enclave.Spec.ServiceAccount.RoleRefs, admin)
-		Expect(author.Update(ctx, enclave)).To(MatchError(ContainSubstring(unbindable)))
+		Eventually(update(author, enclave, func() {
+			enclave.Spec.ServiceAccount.RoleRefs = append(enclave.Spec.ServiceAccount.RoleRefs, admin)
+		})).Should(MatchError(ContainSubstring(unbindable)))
 	})
 
 	It("requires bind on each roleRef of an EnclavePool template", func() {
@@ -221,8 +222,9 @@ var _ = Describe("Admission policy", func() {
 		claim := claimWith(mine)
 		Eventually(func() error { return author.Create(ctx, claim) }).Should(Succeed())
 
-		claim.Spec.SecretRefs = append(claim.Spec.SecretRefs, corev1.LocalObjectReference{Name: theirs})
-		Expect(author.Update(ctx, claim)).To(MatchError(ContainSubstring(unreadable)))
+		Eventually(update(author, claim, func() {
+			claim.Spec.SecretRefs = append(claim.Spec.SecretRefs, corev1.LocalObjectReference{Name: theirs})
+		})).Should(MatchError(ContainSubstring(unreadable)))
 	})
 
 	It("checks every Secret of a claim with many", func() {

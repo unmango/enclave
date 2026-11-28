@@ -140,6 +140,31 @@
         "type": "github"
       }
     },
+    "hercules-ci-effects": {
+      "inputs": {
+        "flake-parts": [
+          "mynix",
+          "flake-parts"
+        ],
+        "nixpkgs": [
+          "mynix",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1794718771,
+        "narHash": "sha256-3edxvSEsSydCs3FH3m0BQswY/84BhJeDdD4JVEVJmNY=",
+        "owner": "hercules-ci",
+        "repo": "hercules-ci-effects",
+        "rev": "eb94ef1ca6da1029c0435cdb09fe269ddb5075cd",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "hercules-ci-effects",
+        "type": "github"
+      }
+    },
     "kubepkgs": {
       "inputs": {
         "flake-parts": "flake-parts_2",
@@ -164,6 +189,39 @@
       "original": {
         "owner": "unmango",
         "repo": "kubepkgs",
+        "type": "github"
+      }
+    },
+    "mynix": {
+      "inputs": {
+        "flake-parts": [
+          "flake-parts"
+        ],
+        "gomod2nix": [
+          "gomod2nix"
+        ],
+        "hercules-ci-effects": "hercules-ci-effects",
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "systems": [
+          "systems"
+        ],
+        "treefmt-nix": [
+          "treefmt-nix"
+        ]
+      },
+      "locked": {
+        "lastModified": 1795824699,
+        "narHash": "sha256-3L65kppQrmoIEpGUAQ7k9Slh1ey8e2x89D1eusVVVEY=",
+        "owner": "UnstoppableMango",
+        "repo": "nix",
+        "rev": "d076848a677655771b64e11089795d82057a903a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "UnstoppableMango",
+        "repo": "nix",
         "type": "github"
       }
     },
@@ -203,6 +261,7 @@
         "flake-parts": "flake-parts",
         "gomod2nix": "gomod2nix",
         "kubepkgs": "kubepkgs",
+        "mynix": "mynix",
         "nixpkgs": "nixpkgs",
         "systems": "systems_2",
         "treefmt-nix": "treefmt-nix_2"
